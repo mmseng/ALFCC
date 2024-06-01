@@ -78,7 +78,7 @@ function Get-AmumssValueConflicts {
 		}
 		
 		log "Found $conflictLinesCount MBIN files with conflicts:" -L 1
-		$conflictFiles = $conflictLinesMatchInfo.Matches | ForEach-Object {
+		$conflictMbins = $conflictLinesMatchInfo.Matches | ForEach-Object {
 			$conflictMatch = $_
 			$mbin = $conflictMatch.Groups[1].Value
 			$pak = $conflictMatch.Groups[2].Value
@@ -123,14 +123,107 @@ function Get-AmumssValueConflicts {
 			}
 		}
 		
-		$conflictFiles
+		$conflictMbins
+	}
+	
+	function Get-LuaFilesWithConflicts($conflictMbins) {
+		# Currently we have a list of MBIN files.
+		# Each MBIN file has a list of Luas that are trying to contribute to it.
+		# Some Lua files may be contributing to multiple conflicts.
+		# We only really care about the Lua files and which other Lua files they conflict with.
+		# So instead, munge the data so that it's a list of Lua files, which each have a list of which other Lua files they conflict with.
+		
+		log "Munging data..."
+		
+		# Get unique Lua files
+		$conflictLuas = $conflictMbins | ForEach-Object {
+			$_.Luas | ForEach-Object {
+				$_
+			}
+		} | Sort "FilePath" -Unique
+		
+		# For each Lua file record the list of MBINs it contributes to
+		$conflictLuas = $conflictLuas | ForEach-Object {
+			$lua = $_
+			$mbins = $conflictMbins | ForEach-Object {
+				if($_.Luas.FilePath -contains $lua.FilePath) {
+					$_
+				}
+			}
+			$lua | Add-Member -NotePropertyName "Mbins" -NotePropertyValue $mbins -PassThru
+		}
+		
+		# For Lua file, generate a list of other Luas it conflicts with
+		$conflictLuas = $conflictLuas | ForEach-Object {
+			$lua = $_
+			
+			$conflictingLuaPaths = $lua.Mbins | ForEach-Object {
+				$_.Luas | ForEach-Object {
+					$_.FilePath
+				}
+			} | Sort
+			$conflictingOtherLuaPaths = $conflictingLuaPaths | Where { $_ -ne $lua.FilePath }
+			$conflictingOtherUniqueLuaPaths = $conflictingOtherLuaPaths | Select -Unique
+			
+			$lua | Add-Member -NotePropertyName "ConflictingLuas" -NotePropertyValue $conflictingOtherUniqueLuaPaths -PassThru
+		}
+		
+		log "Unique Luas:" -L 1
+		$conflictLuas | ForEach-Object {
+			log $_.FilePath -L 2
+			log "Contributing to MBINs:" -L 3
+			$_.Mbins | ForEach-Object {
+				log "$($_.Mbin) ($($_.Pak))" -L 4
+			}
+			log "Conflicting Luas:" -L 3
+			$_.ConflictingLuas | ForEach-Object {
+				log $_ -L 4
+			}
+		}
+		
+		$conflictLuas
+	}
+	
+	function Get-ConflictPairs($conflictLuas) {
+		# Get full list of individual, 1-on-1 conflict pairings
+		$conflictPairs = $conflictLuas | ForEach-Object {
+			$lua = $_
+			$_.ConflictingLuas | ForEach-Object {
+				[PSCustomObject]@{
+					"Luas" = @($lua.FilePath, $_)
+				}
+			}
+		}
+		
+		log "Conflict pairs:" -L 1
+		$conflictPairs | ForEach-Object {
+			$pair = $_.Luas
+			$a = $pair[0]
+			$b = $pair[1]
+			log "`"$a`" <> `"$b`"" -L 2
+		}
+		
+		$data = [PSCustomObject]@{
+			"Luas" = $conflictLuas
+			"ConflictPairs" = $conflictPairs
+		}
+		
+		$data
+	}
+	
+	function Get-LuaTables($conflictLuas) {
+		# For each Lua file, get its NMS_MOD_DEFINITION_CONTAINER table
+		
 	}
 	
 	function Do-Stuff {
-		$conflictFiles = Get-MbinFilesWithConflicts
+		$conflictMbins = Get-MbinFilesWithConflicts
+		$conflictLuas = Get-LuaFilesWithConflicts $conflictMbins
+		$data = Get-ConflictPairs $conflictLuas
+		#$data = Get-LuaTables $data
 		
 		if($PassThru) {
-			$conflictFiles
+			$data
 		}
 	}
 		
