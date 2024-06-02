@@ -15,7 +15,7 @@ var = { {}, {} }
 
 -- var is now mixing named and un-named members
 -- Is this valid syntax?
--- To me this is invalid, as it is both an associative array, and also a non-associative array
+-- To me this is nonsensical, as it is demonstrating characteristics of both associative and non-associative arrays
 var = { ["foo"] = "bar", {} }
 
 -- What about this?
@@ -34,4 +34,4 @@ var = {}, {}
 -- https://www.lua.org/pil/11.html
 -- https://www.lua.org/pil/2.5.html
 
--- So, it seems like the actual purpose of a table containing exclusively named properties (e.g. `var = { ["foo"] = "bar", ["fruit"] = {} }`) is to host data and represent an object, while the purpose of a table containing exclusively other un-named tables (e.g. `var = { {}, {} }`) is to be a bucket (potentially for data-hosting objects). Maybe I'm just biased from how I naturally use more familiar languages (e.g. PowerShell), but these use cases seem quite distinct to me. Are there hybrid use cases that I just can't wrap my head around right now?
+-- So, it seems like the purpose of a table containing exclusively named properties (e.g. `var = { ["foo"] = "bar", ["fruit"] = {} }`) is to host data and represent an object, while the purpose of a table containing exclusively other un-named tables (e.g. `var = { {}, {} }`) is to be a bucket (potentially for data-hosting objects). Maybe I'm just biased from how I naturally use more familiar languages (e.g. PowerShell), but these use cases seem quite distinct to me. Are there hybrid use cases that I just can't wrap my head around right now?
