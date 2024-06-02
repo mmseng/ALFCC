@@ -348,6 +348,7 @@ function Get-AmumssValueConflicts {
 		# For each Lua file, get its NMS_MOD_DEFINITION_CONTAINER table and parse its data into forms that facilitate later comparison
 		log "Getting Lua file data..."
 		
+		$anyDataErrors = $false
 		$data.Luas = $data.Luas | ForEach-Object {
 			$lua = $_
 			log "Processing `"$($lua.FilePath)`"..." -L 1
@@ -357,23 +358,45 @@ function Get-AmumssValueConflicts {
 			# Validate the table to make sure there aren't any anomalies
 			$lua = Validate-LuaTable $lua
 			
-			if(-not $ValidateOnly) {
+			$anyLuaErrors = $true
+			if(
+				(-not $ValidateOnly) -and
+				(-not $lua.ValidationErrors)
+			) {
 				# Parse the table data into convenient forms
 				
 				# Parse value changes. These are the most common change that Luas perform.
 				# file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#VALUE_CHANGE_TABLE
 				$lua = Get-ValueChanges $lua
 				
-				# Parse other possible functions: file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#NMS_MOD_DEFINITION_CONTAINER
-				
-				# file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#ADD
-				#$lua = Get-Additions $lua
-				
-				# file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#REMOVE
-				#$lua = Get-Removals $lua
+				if(-not $lua.ValueChangesErrors) {
+					# Parse other possible functions: file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#NMS_MOD_DEFINITION_CONTAINER
+					
+					# file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#ADD
+					#$lua = Get-Additions $lua
+					
+					# file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#REMOVE
+					#$lua = Get-Removals $lua
+					
+					$anyLuaErrors = $false
+				}
+				else {
+					$anyDataErrors = $true
+				}
+			}
+			else {
+				$anyDataErrors = $true
+			}
+			
+			if($anyLuaErrors) {
+				log "Failed to get all data from this Lua file!" -L 2 -E
 			}
 			
 			$lua
+		}
+		
+		if($anyDataErrors) {
+			log "There were one or more errors in validation and data gathering! Comparison will be skipped." -L 1 -E
 		}
 		
 		$data
@@ -562,16 +585,26 @@ function Get-AmumssValueConflicts {
 		$validations += Get-Validation "EXML_CHANGE_TABLE" "all have >=1 member" $valid
 		
 		# Summarize validation results
+		$anyErrors = $false
 		log "Results:" -L 3
 		$validations | ForEach-Object {
 			log "$($_.PropertyName) $($_.Validation): " -L 4 -NoNL
 			
-			$color = "red"
-			if($_.Result) { $color = "green" }
+			$color = "green"
+			if(-not $_.Result) {
+				$color = "red"
+				$anyErrors = $true
+			}
 			log "$($_.Result)" -FC $color -NoTS
 		}
+		$lua = $lua | Add-Member -NotePropertyName "Validations" -NotePropertyValue $validations
 		
-		$lua | Add-Member -NotePropertyName "Validations" -NotePropertyValue $validations -PassThru
+		if($anyErrors) {
+			log "This Lua files failed validation!" -L 3 -E
+		}
+		$lua | Add-Member -NotePropertyName "ValidationErrors" -NotePropertyValue $anyErrors
+		
+		$lua
 	}
 	
 	function Get-ValueChanges($lua) {
@@ -617,7 +650,10 @@ function Get-AmumssValueConflicts {
 		$data = Get-ConflictPairs $conflictLuas
 		$data = Get-LuaData $data
 		
-		if(-not $ValidateOnly) {
+		if(
+			(-not $ValidateOnly) -and
+			(-not $data.Errors)
+		) {
 			$data = Compare-Luas $data
 		}
 		
