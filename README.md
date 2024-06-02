@@ -12,6 +12,8 @@ As such, is a fairly niche tool (even moreso than AMUMSS itself), so ALFCC is mo
 # Behavior
 ALFCC works by taking the names of specific Lua files (or interpreting them from AMUMSS logging output), executing those Lua files to read in the actual, final values that will be changed, and comparing them. Just reading the raw content of the Lua files is not sufficient because Lua file are just scripts which eventually build a Lua table variable (`NMS_MOD_DEFINITION_CONTAINER`) which contains the necessary data. Executing the Lua files first and _then_ reading the variable ensures that we ingest the final, effective changes that the mod wants to perform.  
 
+Because ALFCC must read the `NMS_MOD_DEFINITION_CONTAINER` table data produced by the mod Lua files, it also does some basic validation of this data, so in a sense, it also checks mod Lua files for conflicts within themselves. This validation is relatively simplistic, but can still be a useful tool. The validation code could be easily extended as well.  
+
 # WIP
 THIS TOOL IS CURRENTLY A WORK IN PROGRESS IN THE ALPHA STAGES! DO NOT USE IT YET!  
 
