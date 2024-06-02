@@ -15,44 +15,123 @@ function Get-AmumssValueConflicts {
 		
 		[string]$LuaTableJsonScriptPath = "S:\Git\Get-AmumssValueConflicts\getLuaTableJson.lua",
 		
-		[switch]$Log,
-		
-		[string]$LogRelativePath = "Get-AmumssValueConflicts_$(Get-Date -Format "FileDateTime").log",
-		
 		[switch]$Quiet,
+		[switch]$Log,
+		[string]$LogRelativePath = "",
+		[string]$LogFileName = "Get-AmumssValueConflicts",
+		[string]$LogFileTimestampFormat = "yyyy-MM-dd_HH-mm-ss",
+		[string]$LogLineTimestampFormat = "[HH:mm:ss] ",
 		
 		[string]$Indent = "    ",
 		
+		[switch]$ValidateOnly,
+		
 		[switch]$PassThru
 	)
+	$logTs = Get-Date -Format $LogFileTimestampFormat
+	$logPath = "$AmumssDir\$LogRelativePath\$($LogFileName)_$($logTs).log"
 	
 	function log {
-		param(
-			[string]$Msg,
-			[int]$L = 0
+		param (
+			[Parameter(Position=0)]
+			[string]$Msg = "",
+			
+			[string]$LogPath = $logPath,
+
+			[int]$L = 0, # level of indentation
+
+			[ValidateScript({[System.Enum]::GetValues([System.ConsoleColor]) -contains $_})]
+			[string]$FC = (get-host).ui.rawui.ForegroundColor, # foreground color
+			[ValidateScript({[System.Enum]::GetValues([System.ConsoleColor]) -contains $_})]
+			[string]$BC = (get-host).ui.rawui.BackgroundColor, # background color
+
+			[switch]$E, # error
+			[switch]$NoTS, # omit timestamp
+			[switch]$NoNL, # omit newline after output
+			[switch]$NoConsole, # skip outputting to console
+			[switch]$NoLog # skip logging to file
 		)
+		if($E) { $FC = "Red" }
 		
+		$ofParams = @{
+			"FilePath" = $LogPath
+			"Append" = $true
+		}
+		
+		$whParams = @{}
+		
+		if($NoNL) {
+			$ofParams.NoNewLine = $true
+			$whParams.NoNewLine = $true
+		}
+		
+		if($FC) { $whParams.ForegroundColor = $FC }
+		if($BC) { $whParams.BackgroundColor = $BC }
+
+		# Custom indent per message, good for making output much more readable
 		for($i = 0; $i -lt $L; $i += 1) {
-			$Msg = "$($Indent)$($Msg)"
+			$Msg = "$Indent$Msg"
 		}
-		
-		$ts = Get-Date -Format "HH:mm:ss"
-		$Msg = "[$ts] $Msg"
-		
-		if(-not $Quiet) {
-			Write-Host $Msg
-		}
-		
-		if($Log) {
-			$logPath = "$AmumssDir\$LogRelativePath"
-			if(-not (Test-Path -PathType "Leaf" -Path $logPath)) {
-				New-Item -ItemType "File" -Force -Path $Log | Out-Null
-				log "Logging to `"$logPath`"."
+
+		# Add timestamp to each message
+		# $NoTS parameter useful for making things like tables look cleaner
+		if(-not $NoTS) {
+			if($LogLineTimestampFormat) {
+				$ts = Get-Date -Format $LogLineTimestampFormat
 			}
-			$Msg | Out-File -Path $logPath -Append
+			$Msg = "$ts$Msg"
+		}
+
+		# Check if this particular message is supposed to be logged
+		if(-not $NoLog) {
+
+			# Check if we're allowing logging
+			if($Log) {
+				
+				# Check that the logfile already exists, and if not, then create it (and the full directory path that should contain it)
+				if(-not (Test-Path -PathType "Leaf" -Path $LogPath)) {
+					New-Item -ItemType "File" -Force -Path $LogPath | Out-Null
+					log "Logging to `"$Log`"."
+				}
+				
+				$Msg | Out-File @ofParams
+			}
+		}
+
+		# Check if this particular message is supposed to be output to console
+		if(-not $NoConsole) {
+
+			# Check if we're allowing console output at all
+			if(-not $Quiet) {
+				Write-Host $Msg @whParams
+			}
 		}
 	}
 
+	function Get-GivenLuaFiles {
+		log "Building Lua data from given Lua paths..."
+		
+		$conflictLuas = $LuaFilePaths | ForEach-Object {
+			$lua = $_
+			$otherLuas = $LuaFilePaths | Where { $_ -ne $lua }
+			[PSCustomObject]@{
+				"FilePath" = $lua
+				"ConflictingLuas" = $otherLuas
+			}
+		}
+		
+		log "Unique Luas:" -L 1
+		$conflictLuas | ForEach-Object {
+			log $_.FilePath -L 2
+			log "Conflicting Luas:" -L 3
+			$_.ConflictingLuas | ForEach-Object {
+				log $_ -L 4
+			}
+		}
+		
+		$conflictLuas
+	}
+	
 	function Get-MbinFilesWithConflicts {
 		$reportLuaFilePath = "$AmumssDir\$ReportLuaRelativeFilePath"
 		log "Getting MBIN files with conflicts from `"$reportLuaFilePath`"..."
@@ -189,30 +268,6 @@ function Get-AmumssValueConflicts {
 		$conflictLuas
 	}
 	
-	function Get-GivenLuaFiles {
-		log "Building Lua data from given Lua paths..."
-		
-		$conflictLuas = $LuaFilePaths | ForEach-Object {
-			$lua = $_
-			$otherLuas = $LuaFilePaths | Where { $_ -ne $lua }
-			[PSCustomObject]@{
-				"FilePath" = $lua
-				"ConflictingLuas" = $otherLuas
-			}
-		}
-		
-		log "Unique Luas:" -L 1
-		$conflictLuas | ForEach-Object {
-			log $_.FilePath -L 2
-			log "Conflicting Luas:" -L 3
-			$_.ConflictingLuas | ForEach-Object {
-				log $_ -L 4
-			}
-		}
-		
-		$conflictLuas
-	}
-	
 	function Test-ConflictPairIsUnique($targetPair, $pairs) {
 		#log "Testing if `"$($targetPair.Luas)`" is unique..." -L 2
 		$unique = $true
@@ -301,21 +356,23 @@ function Get-AmumssValueConflicts {
 			# Get the Lua's effective NMS_MOD_DEFINITION_CONTAINER table data by executing the Lua script and passing that variable back
 			$lua = Get-LuaTable $lua
 			# Validate the table to make sure there aren't any anomalies
-			Validate-LuaTable $lua
+			$lua = Validate-LuaTable $lua
 			
-			# Parse the table data into convenient forms
-			
-			# Parse value changes. These are the most common change that Luas perform.
-			# file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#VALUE_CHANGE_TABLE
-			$lua = Get-ValueChanges $lua
-			
-			# Parse other possible functions: file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#NMS_MOD_DEFINITION_CONTAINER
-			
-			# file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#ADD
-			#$lua = Get-Additions $lua
-			
-			# file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#REMOVE
-			#$lua = Get-Removals $lua
+			if(-not $ValidateOnly) {
+				# Parse the table data into convenient forms
+				
+				# Parse value changes. These are the most common change that Luas perform.
+				# file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#VALUE_CHANGE_TABLE
+				$lua = Get-ValueChanges $lua
+				
+				# Parse other possible functions: file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#NMS_MOD_DEFINITION_CONTAINER
+				
+				# file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#ADD
+				#$lua = Get-Additions $lua
+				
+				# file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#REMOVE
+				#$lua = Get-Removals $lua
+			}
 			
 			$lua
 		}
@@ -371,42 +428,157 @@ function Get-AmumssValueConflicts {
 	}
 	
 	function Validate-LuaTable($lua) {
-		log "Validating table data..."
+		log "Validating table data..." -L 2
+		$table = $lua.Table
 		
-		# Make sure the MODIFICATIONS property is a table which has only one un-named property that is a sub-table
-		# Note: While everything in Lua is technically a table (https://www.lua.org/pil/11.html), going forward I'm going to use the term "array" to refer to tables whose only members are multiple un-named properties that are themselves tables. It's just simpler to say "an array of X members", or just "array" to differentiate a table being used as a bucket of things from a table being used to host data and/or represent an object.
-		# Anyway, technically, the spec says that the MODIFICATIONS property is an "array", that can have multiple sub-tables: file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#MODIFICATIONS
+		$validations = @()
+		function Get-Validation($propertyName, $validation, $result) {
+			$object = [PSCustomObject]@{
+				"PropertyName" = $propertyName
+				"Validation" = $validation
+				"Result" = $result
+			}
+			$object
+		}
+		
+		# Note: While everything in Lua is technically a table (https://www.lua.org/pil/11.html), going forward I'm going to use the term "array" to refer to tables whose only members are multiple un-named properties that are themselves tables. It's just simpler to say "an array of X members", instead of "a table of sub-tables with X members", to differentiate a table being used as a bucket of things from a table being used to host data and/or represent an object.
+		
+		# The MODIFICATIONS property is a required top-level property.
+		# Check that it exists:
+		$valid = $false
+		if($table.MODIFICATIONS) {
+			$valid = $true
+		}
+		$validations += Get-Validation "MODIFICATIONS" "exists" $valid
+		
+		# Technically, the spec says that the MODIFICATIONS property is an array, and can have multiple member tables: file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#MODIFICATIONS
 		# However it seems nobody actually does this, and I don't know how that should be handled.
 		# Babscoole said this was used "a little bit in the early days, but didn't pan out".
-		#TODO: Check that MODIFICATIONS array contains only one member.
+		# So, check that MODIFICATIONS array contains only one member:
+		$valid = $false
+		$count = @($table.MODIFICATIONS).count
+		if($count -eq 1) {
+			$valid = $true
+		}
+		$validations += Get-Validation "MODIFICATIONS" "has 1 member" $valid
 		
 		# MBIN_CHANGE_TABLE is the only valid property of the (hopefully one) MODIFICATIONS array member. It is a required property.
-		#TODO: Check for existence of the MBIN_CHANGE_TABLE property.
+		# Check for existence of the MBIN_CHANGE_TABLE property:
+		$valid = $false
+		if($table.MODIFICATIONS[0].MBIN_CHANGE_TABLE) {
+			$valid = $true
+		}
+		$validations += Get-Validation "MBIN_CHANGE_TABLE" "exists" $valid
 		
 		# MBIN_CHANGE_TABLE is an array.
-		#TODO: Check that MBIN_CHANGE_TABLE is an array with 1 or more members.
+		# Check that MBIN_CHANGE_TABLE is an array with 1 or more members.
+		$valid = $false
+		$mbinChangeCount = @($table.MODIFICATIONS[0].MBIN_CHANGE_TABLE).count
+		if($count -ge 1) {
+			$valid = $true
+		}
+		$validations += Get-Validation "MBIN_CHANGE_TABLE" "has >=1 member" $valid
 		
-		# Each member represents an action of some sort to enact upon a given MBIN file.
-		# Each member will have required MBIN_FILE_SOURCE and EXML_CHANGE_TABLE properties, and possibly a COMMENT property.
-		# The only other valid actions besides changing an MBIN are discarding an MBIN, and performing REGEX actions, which seem to be pretty rare.
-		#TODO: Check for the existence of the MBIN_FILE_SOURCE property
-		#TODO: Check for the existence of the EXML_CHANGE_TABLE property
+		# Each member of the MBIN_CHANGE_TABLE array represents an action of some sort to enact upon a given MBIN file.
+		# Each member must have an MBIN_FILE_SOURCE property, and an EXML_CHANGE_TABLE.
+		# Each member of the MBIN_CHANGE_TABLE array can optionally also have a COMMENT property.
 		
-		# EXML_CHANGE_TABLE is an array.
-		#TODO: Check that EXML_CHANGE_TABLE is an array with 1 or more members.
-		
-		# Each member represents a change or set of changes to perform on one or more EXML values within the given MBIN file.
+		# The EXML_CHANGE_TABLE must be an array of 1 or more members.
+		# Each member of the EXML_CHANGE_TABLE array represents a change or set of changes to perform on one or more EXML values within the given MBIN file.
 		# There are several types of changes that can be defined as part of an EXML_CHANGE_TABLE member: file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#EXML_CHANGE_TABLE
 		# However the VALUE_CHANGE_TABLE type of change is by far the most common.
-		#TODO: Check that VALUE_CHANGE_TABLE exists. If not warn that checking for conflicts with other types of changes is not implemented yet.
+				
+		# The only other valid actions besides changing an MBIN are discarding an MBIN, and performing REGEX actions, which seem to be pretty rare.
+		# Ignoring these other possible actions for now.
 		
+		# Each member will have a required MBIN_FILE_SOURCE property.
+		# Check that all members of the MBIN_CHANGE_TABLE array have a MBIN_FILE_SOURCE property:
+		$valid = $false
+		$mbinChangeFileSources = $table.MODIFICATIONS[0].MBIN_CHANGE_TABLE | Select "MBIN_FILE_SOURCE"
+		if($mbinChangeFileSources) {
+			$mbinChangeFileSourcesCount = @($mbinChangeFileSources).count
+			if($mbinChangeFileSourcesCount -eq $mbinChangeCount) {
+				# All of the members of MBIN_CHANGE_TABLE have a MBIN_FILE_SOURCE property.
+				$valid = $true
+			}
+			else {
+				if(@($mbinChangeFileSources).count -gt $mbinChangeCount) {
+					# There are somehow more MBIN_FILE_SOURCE properties than members of MBIN_CHANGE_TABLE.
+					# This should never happen.
+				}
+				if(@($mbinChangeFileSources).count -lt $mbinChangeCount) {
+					# Only some of the members of MBIN_CHANGE_TABLE have a MBIN_FILE_SOURCE property.
+					# Should still be more than 0, otherwise we wouldn't be here.
+				}
+			}
+		}
+		else {
+			# None of the members of MBIN_CHANGE_TABLE have a MBIN_FILE_SOURCE property.
+		}
+		$validations += Get-Validation "MBIN_FILE_SOURCE" "all exist" $valid
 		
+		# Check that all members of the MBIN_CHANGE_TABLE array have a valid and populated MBIN_FILE_SOURCE property:
+		# This seems less likely to happen. Will ignore this check for now.
+		
+		# Each member will have a required EXML_CHANGE_TABLE property.
+		# Check that all members of the MBIN_CHANGE_TABLE array have a EXML_CHANGE_TABLE property:
+		$valid = $false
+		$mbinChangeExmlChanges = $table.MODIFICATIONS[0].MBIN_CHANGE_TABLE | Select "EXML_CHANGE_TABLE"
+		if($mbinChangeExmlChanges) {
+			$mbinChangeExmlChangesCount = @($mbinChangeExmlChanges).count
+			if($mbinChangeExmlChangesCount -eq $mbinChangeCount) {
+				# All of the members of MBIN_CHANGE_TABLE have a EXML_CHANGE_TABLE property.
+				$valid = $true
+			}
+			else {
+				if(@($mbinChangeExmlChanges).count -gt $mbinChangeCount) {
+					# There are somehow more EXML_CHANGE_TABLE properties than members of MBIN_CHANGE_TABLE.
+					# This should never happen.
+				}
+				if(@($mbinChangeExmlChanges).count -lt $mbinChangeCount) {
+					# Only some of the members of MBIN_CHANGE_TABLE have a EXML_CHANGE_TABLE property.
+					# Should still be more than 0, otherwise we wouldn't be here.
+				}
+			}
+		}
+		else {
+			# None of the members of MBIN_CHANGE_TABLE have a EXML_CHANGE_TABLE property.
+		}
+		$validations += Get-Validation "EXML_CHANGE_TABLE" "all exist" $valid
+		
+		# Check that all members of the MBIN_CHANGE_TABLE array have a valid and populated EXML_CHANGE_TABLE property:
+		# This seems less likely to happen. Will ignore this check for now.
+		
+		# EXML_CHANGE_TABLE is an array.
+		# Check that each EXML_CHANGE_TABLE is an array with 1 or more members:
+		$valid = $true
+		$mbinChangeExmlChanges | ForEach-Object {
+			$members = $_.EXML_CHANGE_TABLE
+			$count = @($members).count
+			if($count -lt 1) {
+				$valid = $false
+			}
+			
+		}
+		$validations += Get-Validation "EXML_CHANGE_TABLE" "all have >=1 member" $valid
+		
+		# Summarize validation results
+		log "Results:" -L 3
+		$validations | ForEach-Object {
+			log "$($_.PropertyName) $($_.Validation): " -L 4 -NoNL
+			
+			$color = "red"
+			if($_.Result) { $color = "green" }
+			log "$($_.Result)" -FC $color -NoTS
+		}
+		
+		$lua | Add-Member -NotePropertyName "Validations" -NotePropertyValue $validations -PassThru
 	}
 	
 	function Get-ValueChanges($lua) {
-		log "Identifying value changes..."
+		log "Identifying value changes..." -L 2
 		
-		$table = $lua.
+		log "NOT YET IMPLEMENTED!" -L 3
 		
 		$lua
 	}
@@ -446,7 +618,9 @@ function Get-AmumssValueConflicts {
 		$data = Get-ConflictPairs $conflictLuas
 		$data = Get-LuaData $data
 		
-		$data = Compare-Luas $data
+		if(-not $ValidateOnly) {
+			$data = Compare-Luas $data
+		}
 		
 		if($PassThru) {
 			$data

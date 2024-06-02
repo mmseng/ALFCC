@@ -11,6 +11,7 @@ var = { ["foo"] = "bar", ["fruit"] = {} }
 -- var is a table with two empty sub-tables
 -- I would call this an array, since the members are un-named, and thus not strictly "properties" in my eyes
 -- i.e. it's not an "associative" array
+-- It's also a lot easier to say "an array of X members", rather than "a table of sub-tables with X members", but maybe that is in fact synonomous?
 var = { {}, {} }
 
 -- var is now mixing named and un-named members
