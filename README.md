@@ -19,6 +19,66 @@ THIS TOOL IS CURRENTLY A WORK IN PROGRESS IN THE ALPHA STAGES! DO NOT USE IT YET
 WIP
 
 # Parameters
+
+## Primary parameters
+
+### AmumssDir \<string\>
+Optional string.  
+The full path to your AMUMSS install directory.  
+Omit trailing backslash.  
+Default is `S:\AMUMSS\install`, just because that is the ALFCC author's AMUMSS directory.  
+You will probably want to customize this directly in the script file, rather than provide it as a parameter every time.  
+
+### LuaFilePaths \<string[]\>
+Optional string array.  
+The full paths to (ideally two or more) mod Lua files.  
+Omitting `-LuaFilePaths` causes ALFCC to instead parse `$AmumssDir\REPORT.lua` and use the conflicting files reported by AMUMSS as the files to compare.  
+When using `-LuaFilePaths`, every given file will be compared to every other given file. Keep in mind that this means that every additional file given creates exponentially more work for ALFCC to do.
+
+## Advanced parameters  
+
+### ReportLuaRelativeFilePath \<string\>
+Optional string.  
+The path of AMUMSS' `REPORT.lua` file, relative to `-AmumssDir`.  
+This should basically always just be the default of `REPORT.lua`.  
+Just provided in case you want to test using copies or backups of `REPORT.lua` that are named differently or stored in other locations.  
+
+### ValidateOnly
+WIP
+
+### PassThru
+WIP
+
+### ConflictBlockRegex \<string\>
+WIP
+
+### ConflictLuaRegex \<string\>
+WIP
+
+### LuaTableJsonScriptPath \<string\>
+WIP
+
+## Logging parameters
+
+### Quiet
+WIP
+
+### Log
+WIP
+
+### LogRelativePath \<string\>
+WIP
+
+### LogFileName \<string\>
+WIP
+
+### LogFileTimestampFormat \<string\>
+WIP
+
+### LogLineTimestampFormat \<string\>
+WIP
+
+### Indent \<string\>
 WIP
 
 # Notes

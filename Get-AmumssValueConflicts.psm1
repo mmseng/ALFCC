@@ -1,13 +1,17 @@
 function Get-AmumssValueConflicts {
 	param(
-		# If specified, we'll look for conflicts between the given Lua files instead of those reported by AMUMSS as having conflicts
-		[string[]]$LuaFilePaths,
-		
 		# The root directory of your AMUMSS install
 		[string]$AmumssDir = "S:\AMUMSS\install",
 		
+		# If specified, we'll look for conflicts between the given Lua files instead of those reported by AMUMSS as having conflicts
+		[string[]]$LuaFilePaths,
+		
 		# The path of "REPORT.lua" relative to $AmumssDir
 		[string]$ReportLuaRelativeFilePath = "REPORT.lua",
+		
+		[switch]$ValidateOnly,
+		
+		[switch]$PassThru,
 		
 		# Regex to identify lines in REPORT.lua containing conflict information
 		[string]$ConflictBlockRegex = '(?m)\[\[CONFLICT\]\] on "(.*)" \((.*)\)\r\n((.|\r\n)*?)IGNORE',
@@ -21,12 +25,7 @@ function Get-AmumssValueConflicts {
 		[string]$LogFileName = "Get-AmumssValueConflicts",
 		[string]$LogFileTimestampFormat = "yyyy-MM-dd_HH-mm-ss",
 		[string]$LogLineTimestampFormat = "[HH:mm:ss] ",
-		
-		[string]$Indent = "    ",
-		
-		[switch]$ValidateOnly,
-		
-		[switch]$PassThru
+		[string]$Indent = "    "
 	)
 	$logTs = Get-Date -Format $LogFileTimestampFormat
 	$logPath = "$AmumssDir\$LogRelativePath\$($LogFileName)_$($logTs).log"
