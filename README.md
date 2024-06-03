@@ -28,9 +28,15 @@ If you have ideas, requests, complaints, etc., you can make an [issue](https://g
 - PowerShell 7+. It may well work fine on Windows PowerShell 5.1, but it has only been tested in PowerShell 7.4+.
 
 # Installation
-- Download `Get-AmumssValueConflicts.psm1
+- Download `Get-AmumssValueConflicts.psm1` into your `$env:PSModulePath`.
+- Download `getLuaTableJson.lua` to a desired location, which you will specify via the `-LuaTableJsonScriptPath` parameter. You can change the default in the PSM1 file to match, so that you don't have to specify that parameter all the time.
 
 # Usage
+
+### Default usage
+- Run AMUMSS as you normally would, generating a `REPORT.lua` file.
+- If it has conflicts, open a PowerShell 7 prompt and run `Get-AmumssValueConflicts`.
+  - Use the parameter documentation to customize the behavior to your liking.
 
 
 # Parameters
