@@ -703,9 +703,9 @@ function Get-AmumssValueConflicts {
 	}
 	
 	function Get-ValueChanges($lua) {
-		log "Identifying value changes..." -L 2
+		log "Identifying value changes..." -L 3
 		
-		log "NOT YET IMPLEMENTED!" -L 3
+		log "NOT YET IMPLEMENTED!" -L 4 -E
 		
 		$lua
 	}
@@ -729,7 +729,7 @@ function Get-AmumssValueConflicts {
 	function Compare-ValueChanges($data) {
 		log "Comparing value changes..." -L 2
 		
-		log "NOT YET IMPLEMENTED!" -L 3
+		log "NOT YET IMPLEMENTED!" -L 3 -E
 		
 		$data
 	}
