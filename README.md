@@ -74,22 +74,33 @@ The custom Lua script which is used to execute the conflicting mod Lua files.
 ## Logging parameters
 
 ### Quiet
-WIP
+Optional switch.  
+If specified, all console output is omitted, including warnings and errors.  
 
 ### Log
-WIP
+Optional switch.  
+If specified all console output (regardless of whether `-Quiet` is specified) is recorded in a log file.  
 
 ### LogRelativePath \<string\>
-WIP
+Optional string.  
+The path to the log file, relative to `-AmumssDir`.  
+Default is `""` (i.e. an empty string), signifying that the root of `-AmumssDir` should be used.  
+If specifying this parameter, omit the leading _and_ trailing backslash.  
 
 ### LogFileName \<string\>
-WIP
+Optional string.  
+The base name of the log file.  
+The final file path will look like `$AmumssDir\$LogRelativePath\$LogFileName_<timestamp>.log`.  
 
 ### LogFileTimestampFormat \<string\>
-WIP
+Optional string.  
+The format of the timestamp used in the log filename.  
+Default is `yyyy-MM-dd_HH-mm-ss`.  
 
 ### LogLineTimestampFormat \<string\>
-WIP
+Optional string.  
+The format of the timestamp used on every line of the console output and log file.  
+Default is `[HH:mm:ss]⎵` (where `⎵` is a space).  
 
 ### Indent \<string\>
 WIP
