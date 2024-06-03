@@ -28,7 +28,7 @@ If you have ideas, requests, complaints, etc., you can make an [issue](https://g
 - PowerShell 7+. It may well work fine on Windows PowerShell 5.1, but it has only been tested in PowerShell 7.4+.
 
 # Installation
-- Download `Get-AmumssValueConflicts.psm1` into your `$env:PSModulePath`.
+- Download `Get-AVLCCReport.psm1` into your `$env:PSModulePath`.
 - Download `getLuaTableJson.lua` to a desired location, which you will specify via the `-LuaTableJsonScriptPath` parameter. You can change the default in the PSM1 file to match, so that you don't have to specify that parameter all the time.
 
 # Usage
@@ -36,19 +36,19 @@ If you have ideas, requests, complaints, etc., you can make an [issue](https://g
 ### Default usage
 To run AVLCC on files which AMUMSS reports as conflicting:  
 - Run AMUMSS as you normally would, generating a `REPORT.lua` file.
-- If it has conflicts, open a PowerShell 7 prompt and run `Get-AmumssValueConflicts`.
+- If it has conflicts, open a PowerShell 7 prompt and run `Get-AVLCCReport`.
   - Use the parameter documentation to customize the behavior to your liking.
 
 ### Targeted usage
 To run AVLCC on specific files of your choosing:  
-- Run `Get-AmumssValueConflicts -LuaFilePaths <lua files>`
+- Run `Get-AVLCCReport -LuaFilePaths <lua files>`
   - Replace `<lua files>` with an array of strings representing full file paths to target Lua files.
 
 # Examples
 
 ### Default usage, with log and object output
 ```powershell
-Get-AmumssValueConflicts -Log -PassThru
+Get-AVLCCReport -Log -PassThru
 ```
 
 ### Targeted usage
@@ -57,12 +57,12 @@ $luaFilePaths = @(
 	"S:\AMUMSS\install\Modscript\4.70\+FineLOD_renamed\+FineLOD_renamed.lua",
 	"S:\AMUMSS\install\Modscript\4.70\Jasondude and Exosolar's Hybrid Abyss\Jasondude and Exosolar's Hybrid Abyss.lua"
 )
-Get-AmumssValueConflicts -LuaFilePaths $luaFilePaths
+Get-AVLCCReport -LuaFilePaths $luaFilePaths
 ```
 
 ### Default usage, customizing some paths
 ```powershell
-Get-AmumssValueConflicts -AmumssDir "C:\AMUMSS" -ReportLuaRelativeFilePath "backups\REPORT_2024-01-01.lua" -LuaTableJsonScriptPath "C:\AMUMSS\getLuaTableJson.lua"
+Get-AVLCCReport -AmumssDir "C:\AMUMSS" -ReportLuaRelativeFilePath "backups\REPORT_2024-01-01.lua" -LuaTableJsonScriptPath "C:\AMUMSS\getLuaTableJson.lua"
 ```
 
 # Parameters
@@ -116,7 +116,7 @@ Default is `'- "SCRIPT in (.*)"'`.
 ### LuaTableJsonScriptPath \<string\>
 Optional string.  
 The full path to the custom Lua script which is used to execute the conflicting mod Lua files.  
-Currently the default is `S:\Git\Get-AmumssValueConflicts\getLuaTableJson.lua`.  
+Currently the default is `S:\Git\Get-AVLCCReport\getLuaTableJson.lua`.  
 I will probably change this to a path relative to `-AmumssDir` at some point after initial AVLCC development is complete.  
 
 ## Logging parameters
