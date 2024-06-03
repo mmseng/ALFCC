@@ -12,14 +12,26 @@ Realistically, if you're smart with the kinds of mods you use together, you can 
 
 As such, is a fairly niche tool (even moreso than AMUMSS itself), so ALFCC is mostly just an extra tool in the toolbelt of mod developers. But it can be useful in some instances for mod users as well.  
 
-# Behavior
+### Behavior
 ALFCC works by taking the names of specific Lua files (or interpreting them from AMUMSS logging output), executing those Lua files to read in the actual, final values that will be changed, and comparing them. Just reading the raw content of the Lua files is not sufficient because Lua file are just scripts which eventually build a Lua table variable (`NMS_MOD_DEFINITION_CONTAINER`) which contains the necessary data. Executing the Lua files first and _then_ reading the variable ensures that we ingest the final, effective changes that the mod wants to perform.  
 
-# Validation
+### Validation
 Because ALFCC must read the `NMS_MOD_DEFINITION_CONTAINER` table data produced by the mod Lua files, it also does some basic validation of this data against the bare minimum specifications of the required table syntax. This validation is relatively simplistic, but can still be a useful tool. ALFCC can be run in validation-only mode to make use of this in a standalone fashion. The validation code could be easily extended as well.  
 
+### Future development
+This project is currently very immature. In the future I may look into simplifying the installation process, or potentially compiling the scripts into some sort of binary executable release for ease of use.  
+
+If you have ideas, requests, complaints, etc., you can make an [issue](https://github.com/mmseng/ALFCC/issues).  
+
+# Requirements
+- A functioning AMUMSS installation
+- PowerShell 7+. It may well work fine on Windows PowerShell 5.1, but it has only been tested in PowerShell 7.4+.
+
+# Installation
+- Download `Get-AmumssValueConflicts.psm1
+
 # Usage
-WIP
+
 
 # Parameters
 

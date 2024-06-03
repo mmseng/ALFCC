@@ -92,7 +92,7 @@ function Get-AmumssValueConflicts {
 				# Check that the logfile already exists, and if not, then create it (and the full directory path that should contain it)
 				if(-not (Test-Path -PathType "Leaf" -Path $LogPath)) {
 					New-Item -ItemType "File" -Force -Path $LogPath | Out-Null
-					log "Logging to `"$Log`"."
+					log "Logging to `"$LogPath`"."
 				}
 				
 				$Msg | Out-File @ofParams
@@ -109,8 +109,63 @@ function Get-AmumssValueConflicts {
 		}
 	}
 
+	function Get-LuaFiles($data) {
+		log "Getting list of Lua files on which to act..."
+		$anyGetFileErrors = $true
+		
+		if($LuaFilePaths) {
+			log "-LuaFilePaths was specified. Using given Lua file paths." -L 1
+			
+			try {
+				$conflictLuas = Get-GivenLuaFiles
+			}
+			catch {
+				$conflictLuasError = $true
+				log $_.Exception.Message -L 2 -E
+			}
+			
+			if(-not $conflictLuasError) {
+				$anyGetFileErrors = $false
+			}
+		}
+		else {
+			log "-LuaFilePaths was not specified. Interpreting Lua file paths from AMUMSS report file." -L 1
+			try {
+				$conflictMbins = Get-MbinFilesWithConflicts
+			}
+			catch {
+				$conflictMbinsError = $true
+				log $_.Exception.Message -L 2 -E
+			}
+			
+			if(-not $conflictMbinsError) {
+				try {
+					$conflictLuas = Get-LuaFilesWithConflicts $conflictMbins
+				}
+				catch {
+					$conflictLuasError = $true
+					log $_.Exception.Message -L 2 -E
+				}
+			}
+			
+			if(-not $conflictLuasError) {
+				$anyGetFileErrors = $false
+			}
+		}
+		
+		if($anyGetFileErrors) {
+			log "Failed getting list of Lua files!" -L 1
+		}
+		else {
+			$data | Add-Member -NotePropertyName "Luas" -NotePropertyValue $conflictLuas
+		}
+		$data.Errors = $anyGetFileErrors
+		
+		$data
+	}
+	
 	function Get-GivenLuaFiles {
-		log "Building Lua data from given Lua paths..."
+		log "Building Lua data from given Lua paths..." -L 2
 		
 		$conflictLuas = $LuaFilePaths | ForEach-Object {
 			$lua = $_
@@ -121,12 +176,12 @@ function Get-AmumssValueConflicts {
 			}
 		}
 		
-		log "Unique Luas:" -L 1
+		log "Unique Luas:" -L 3
 		$conflictLuas | ForEach-Object {
-			log $_.FilePath -L 2
-			log "Conflicting Luas:" -L 3
+			log $_.FilePath -L 4
+			log "Conflicting Luas:" -L 5
 			$_.ConflictingLuas | ForEach-Object {
-				log $_ -L 4
+				log $_ -L 6
 			}
 		}
 		
@@ -135,7 +190,7 @@ function Get-AmumssValueConflicts {
 	
 	function Get-MbinFilesWithConflicts {
 		$reportLuaFilePath = "$AmumssDir\$ReportLuaRelativeFilePath"
-		log "Getting MBIN files with conflicts from `"$reportLuaFilePath`"..."
+		log "Getting MBIN files with conflicts from `"$reportLuaFilePath`"..." -L 2
 		
 		$reportLuaFile = Get-Item -Path $reportLuaFilePath
 		if(-not $reportLuaFile) {
@@ -149,8 +204,7 @@ function Get-AmumssValueConflicts {
 		
 		$conflictLinesMatchInfo = $reportLuaFileContent | Select-String -AllMatches -Pattern $ConflictBlockRegex
 		if(-not $conflictLinesMatchInfo) {
-			log "No conflicts found in `"$reportLuaFilePath`"." -L 1
-			return
+			Throw "No conflicts found in `"$reportLuaFilePath`"!"
 		}
 		
 		if(-not $conflictLinesMatchInfo.Matches) {
@@ -162,12 +216,12 @@ function Get-AmumssValueConflicts {
 			Throw "Conflicts found, and match data was returned, but the match count was <1!"
 		}
 		
-		log "Found $conflictLinesCount MBIN files with conflicts:" -L 1
+		log "Found $conflictLinesCount MBIN files with conflicts:" -L 3
 		$conflictMbins = $conflictLinesMatchInfo.Matches | ForEach-Object {
 			$conflictMatch = $_
 			$mbin = $conflictMatch.Groups[1].Value
 			$pak = $conflictMatch.Groups[2].Value
-			log "$mbin ($pak)" -L 2
+			log "$mbin ($pak)" -L 4
 			
 			$luaString = $conflictMatch.Groups[3].Value
 			$luaMatchInfo = $luaString | Select-String -AllMatches -Pattern $ConflictLuaRegex
@@ -187,7 +241,7 @@ function Get-AmumssValueConflicts {
 			$luaFiles = $luaMatchInfo.Matches | ForEach-Object {
 				$luaMatch = $_
 				$luaFilePath = $luaMatch.Groups[1].Value
-				log $luaFilePath -L 3
+				log $luaFilePath -L 5
 				$luaFilePathParts = $luaFilePath -split '\\'
 				$luaFileNameIndex = $luaFilePathParts.length - 1
 				$luaFileName = $luaFilePathParts[$luaFileNameIndex]
@@ -298,12 +352,12 @@ function Get-AmumssValueConflicts {
 		$unique
 	}
 	
-	function Get-ConflictPairs($conflictLuas) {
+	function Get-ConflictPairs($data) {
 		# Get full list of individual, 1-on-1 conflict pairings
 		log "Getting conflict pairings..."
 		
 		log "Getting all pairings..." -L 1
-		$conflictPairs = $conflictLuas | ForEach-Object {
+		$conflictPairs = $data.Luas | ForEach-Object {
 			$lua = $_
 			$_.ConflictingLuas | ForEach-Object {
 				[PSCustomObject]@{
@@ -338,10 +392,7 @@ function Get-AmumssValueConflicts {
 			log "`"$a`" <> `"$b`"" -L 3
 		}
 		
-		$data = [PSCustomObject]@{
-			"Luas" = $conflictLuas
-			"ConflictPairs" = $uniqueConflictPairs
-		}
+		$data | Add-Member -NotePropertyName "ConflictPairs" -NotePropertyValue $uniqueConflictPairs
 		
 		$data
 	}
@@ -402,7 +453,7 @@ function Get-AmumssValueConflicts {
 		if($anyOverallErrors) {
 			log "One or more Lua files had one or more errors in execution, validation, and/or parsing!" -L 1 -E
 		}
-		$data | Add-Member -NotePropertyName "Errors" -NotePropertyValue $anyOverallErrors
+		$data.Errors = $anyOverallErrors
 		
 		$data
 	}
@@ -684,35 +735,47 @@ function Get-AmumssValueConflicts {
 	}
 	
 	function Do-Stuff {
-		if($LuaFilePaths) {
-			$conflictLuas = Get-GivenLuaFiles
+		$startTime = Get-Date
+		$data = [PSCustomObject]@{
+			"StartTime" = $startTime
+			"Errors" = $false
 		}
-		else {
-			$conflictMbins = Get-MbinFilesWithConflicts
-			$conflictLuas = Get-LuaFilesWithConflicts $conflictMbins
-		}
-		$data = Get-ConflictPairs $conflictLuas
-		$data = Get-LuaData $data
 		
-		if(
-			(-not $ValidateOnly) -and
-			(-not $data.Errors)
-		) {
-			$data = Compare-Luas $data
-		}
-		else {
-			if($ValidateOnly) {
-				if($data.Errors) {
-					log "-ValidateOnly was specified. Skipping comparison."
+		$data = Get-LuaFiles $data
+		
+		if(-not $data.Errors) {
+			$data = Get-ConflictPairs $data
+			
+			if(-not $data.Errors) {
+				$data = Get-LuaData $data
+				
+				if(
+					(-not $ValidateOnly) -and
+					(-not $data.Errors)
+				) {
+					$data = Compare-Luas $data
 				}
 				else {
-					log "-ValidateOnly was specified and there were errors processing one or more Lua files. Skipping comparison."
+					if($ValidateOnly) {
+						if($data.Errors) {
+							log "-ValidateOnly was specified. Skipping comparison."
+						}
+						else {
+							log "-ValidateOnly was specified and there were errors processing one or more Lua files. Skipping comparison."
+						}
+					}
+					elseif($data.Errors) {
+						log "There were errors processing one or more Lua files. Skipping comparison."
+					}
 				}
 			}
-			elseif($data.Errors) {
-				log "There were errors processing one or more Lua files. Skipping comparison."
-			}
 		}
+		
+		$endTime = Get-Date
+		$data | Add-Member -NotePropertyName "EndTime" -NotePropertyValue $endTime
+		$runTime = $endTime - $startTime
+		$data | Add-Member -NotePropertyName "RunTime" -NotePropertyValue $runTime
+		log "Runtime: $runTime"
 		
 		if($PassThru) {
 			$data
