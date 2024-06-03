@@ -12,7 +12,8 @@ As such, is a fairly niche tool (even moreso than AMUMSS itself), so ALFCC is mo
 # Behavior
 ALFCC works by taking the names of specific Lua files (or interpreting them from AMUMSS logging output), executing those Lua files to read in the actual, final values that will be changed, and comparing them. Just reading the raw content of the Lua files is not sufficient because Lua file are just scripts which eventually build a Lua table variable (`NMS_MOD_DEFINITION_CONTAINER`) which contains the necessary data. Executing the Lua files first and _then_ reading the variable ensures that we ingest the final, effective changes that the mod wants to perform.  
 
-Because ALFCC must read the `NMS_MOD_DEFINITION_CONTAINER` table data produced by the mod Lua files, it also does some basic validation of this data, so in a sense, it also checks mod Lua files for conflicts within themselves. This validation is relatively simplistic, but can still be a useful tool. The validation code could be easily extended as well.  
+# Validation
+Because ALFCC must read the `NMS_MOD_DEFINITION_CONTAINER` table data produced by the mod Lua files, it also does some basic validation of this data against the bare minimum specifications of the required table syntax. This validation is relatively simplistic, but can still be a useful tool. ALFCC can be run in validation-only mode to make use of this in a standalone fashion. The validation code could be easily extended as well.  
 
 # WIP
 THIS TOOL IS CURRENTLY A WORK IN PROGRESS IN THE ALPHA STAGES! DO NOT USE IT YET!  
@@ -34,7 +35,7 @@ You will probably want to customize this directly in the script file, rather tha
 ### LuaFilePaths \<string[]\>
 Optional string array.  
 The full paths to (ideally two or more) mod Lua files.  
-Omitting `-LuaFilePaths` causes ALFCC to instead parse `$AmumssDir\REPORT.lua` and use the conflicting files reported by AMUMSS as the files to compare.  
+Omitting this parameter causes ALFCC to instead parse `$AmumssDir\REPORT.lua` and use the conflicting files reported by AMUMSS as the files to compare.  
 When using `-LuaFilePaths`, every given file will be compared to every other given file. Keep in mind that this means that every additional file given creates exponentially more work for ALFCC to do.
 
 ## Advanced parameters  
@@ -46,19 +47,29 @@ This should basically always just be the default of `REPORT.lua`.
 Just provided in case you want to test using copies or backups of `REPORT.lua` that are named differently or stored in other locations.  
 
 ### ValidateOnly
-WIP
+Optional switch.  
+If specified, ALFCC skips comparing the Lua files and just does the initial validation of each file.  
 
 ### PassThru
-WIP
+Optional switch.  
+If specified, a PowerShell object will be returned.  
+The object will contain basically all of the information that was gathered and used by ALFCC during execution, so that it can be reviewed manually, or further acted/automated upon.  
+
+I can't be bothered to document the anatomy of the object at the moment, but it's pretty straightforward.  
 
 ### ConflictBlockRegex \<string\>
-WIP
+Optional string.  
+The regex string used to identify the the lines in `REPORT.lua` which contain information about which MBIN and Lua files are conflicting.  
+Don't change this unless you know exactly what you're doing.  
 
 ### ConflictLuaRegex \<string\>
-WIP
+Optional string.  
+The regex string used to further identify the conflicting Lua files from the lines identified by `-ConflictBlockRegex`.  
+Don't change this unless you know exactly what you're doing.  
 
 ### LuaTableJsonScriptPath \<string\>
-WIP
+Optional string.  
+The custom Lua script which is used to execute the conflicting mod Lua files.  
 
 ## Logging parameters
 
