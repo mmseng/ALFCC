@@ -1,3 +1,6 @@
+# WIP
+THIS TOOL IS CURRENTLY A WORK IN PROGRESS IN THE ALPHA STAGES! DO NOT USE IT UNTIL THIS MESSAGE HAS BEEN REMOVED!  
+
 # ALFCC
 ALFCC stands for AMUMSS Lua File Conflict Checker. It is a tool intended to be used in conjunction with [AMUMSS](https://github.com/HolterPhylo/AMUMSS), to check for value-level conflicts in Lua files used by No Man's Sky mods.  
 
@@ -14,9 +17,6 @@ ALFCC works by taking the names of specific Lua files (or interpreting them from
 
 # Validation
 Because ALFCC must read the `NMS_MOD_DEFINITION_CONTAINER` table data produced by the mod Lua files, it also does some basic validation of this data against the bare minimum specifications of the required table syntax. This validation is relatively simplistic, but can still be a useful tool. ALFCC can be run in validation-only mode to make use of this in a standalone fashion. The validation code could be easily extended as well.  
-
-# WIP
-THIS TOOL IS CURRENTLY A WORK IN PROGRESS IN THE ALPHA STAGES! DO NOT USE IT YET!  
 
 # Usage
 WIP
