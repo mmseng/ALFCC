@@ -43,8 +43,8 @@ When using `-LuaFilePaths`, every given file will be compared to every other giv
 ### ReportLuaRelativeFilePath \<string\>
 Optional string.  
 The path of AMUMSS' `REPORT.lua` file, relative to `-AmumssDir`.  
-This should basically always just be the default of `REPORT.lua`.  
-Just provided in case you want to test using copies or backups of `REPORT.lua` that are named differently or stored in other locations.  
+Default is `REPORT.lua`.  
+Just provided in case you want to test using copies or backups of `REPORT.lua` which are named differently or stored in other locations.  
 
 ### ValidateOnly
 Optional switch.  
@@ -61,15 +61,19 @@ I can't be bothered to document the anatomy of the object at the moment, but it'
 Optional string.  
 The regex string used to identify the the lines in `REPORT.lua` which contain information about which MBIN and Lua files are conflicting.  
 Don't change this unless you know exactly what you're doing.  
+Default is `'(?m)\[\[CONFLICT\]\] on "(.*)" \((.*)\)\r\n((.|\r\n)*?)IGNORE'`.  
 
 ### ConflictLuaRegex \<string\>
 Optional string.  
 The regex string used to further identify the conflicting Lua files from the lines identified by `-ConflictBlockRegex`.  
 Don't change this unless you know exactly what you're doing.  
+Default is `'- "SCRIPT in (.*)"'`.  
 
 ### LuaTableJsonScriptPath \<string\>
 Optional string.  
-The custom Lua script which is used to execute the conflicting mod Lua files.  
+The full path to the custom Lua script which is used to execute the conflicting mod Lua files.  
+Currently the default is `S:\Git\Get-AmumssValueConflicts\getLuaTableJson.lua`.  
+I will probably change this to a path relative to `-AmumssDir` at some point after initial ALFCC development is complete.  
 
 ## Logging parameters
 
@@ -103,7 +107,10 @@ The format of the timestamp used on every line of the console output and log fil
 Default is `[HH:mm:ss]⎵` (where `⎵` is a space).  
 
 ### Indent \<string\>
-WIP
+Optional string.  
+The string used as indentation between `-LogLineTimestampFormat` and the actual message of the individual log line content.  
+`-Indent` is repeated multiple times on any given line depending on how much that particular log message should be indented.  
+Default is `⎵⎵⎵⎵` (i.e. 4 spaces).  
 
 # Notes
 - By mmseng. See my other projects here: https://github.com/mmseng/code-compendium-personal.
