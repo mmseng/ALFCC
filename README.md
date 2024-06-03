@@ -44,7 +44,7 @@ To run ALFCC on specific files of your choosing:
 - Run `Get-AmumssValueConflicts -LuaFilePaths <lua files>`
   - Replace `<lua files>` with an array of strings representing full file paths to target Lua files.
   
-e.g.  
+E.g.:  
 ```powershell
 $luaFilePaths = @(
 	"S:\AMUMSS\install\Modscript\4.70\+FineLOD_renamed\+FineLOD_renamed.lua",
