@@ -43,14 +43,26 @@ To run ALFCC on files which AMUMSS reports as conflicting:
 To run ALFCC on specific files of your choosing:  
 - Run `Get-AmumssValueConflicts -LuaFilePaths <lua files>`
   - Replace `<lua files>` with an array of strings representing full file paths to target Lua files.
-  
-E.g.:  
+
+# Examples
+
+### Default usage, with log and object output
+```powershell
+Get-AmumssValueConflicts -Log -PassThru
+```
+
+### Targeted usage
 ```powershell
 $luaFilePaths = @(
 	"S:\AMUMSS\install\Modscript\4.70\+FineLOD_renamed\+FineLOD_renamed.lua",
 	"S:\AMUMSS\install\Modscript\4.70\Jasondude and Exosolar's Hybrid Abyss\Jasondude and Exosolar's Hybrid Abyss.lua"
 )
 Get-AmumssValueConflicts -LuaFilePaths $luaFilePaths
+```
+
+### Default usage, customizing some paths
+```powershell
+Get-AmumssValueConflicts -AmumssDir "C:\AMUMSS" -ReportLuaRelativeFilePath "backups\REPORT_2024-01-01.lua" -LuaTableJsonScriptPath "C:\AMUMSS\getLuaTableJson.lua"
 ```
 
 # Parameters
