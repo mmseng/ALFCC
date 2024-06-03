@@ -718,9 +718,23 @@ function Get-AVLCCReport {
 			$b = $_.Luas[1]
 			log "$a <> $b" -L 1
 			
+			# Compare directly conflicting actions 
+			
+			# Compare value changes
 			$data = Compare-ValueChanges $data
+			
+			# Compare additions
 			#$data = Compare-Additions $data
+			
+			# Compare removals
+			#$data = Compare-Removals $data
+			
 			# and other possible functions: file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#NMS_MOD_DEFINITION_CONTAINER
+			
+			# Later, also attempt to compare logic errors.
+			# e.g. One mod removes data that another mod later wants to add/edit (these will produce AMUMSS warnings)
+			# or vice versa; one mod adds/edits data that another mod later wants to remove (these _probably_ wouldn't produce errors, but would be devious to troubleshoot
+			
 		}
 		
 		$data
