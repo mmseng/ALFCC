@@ -30,6 +30,8 @@ function Get-AmumssValueConflicts {
 	$logTs = Get-Date -Format $LogFileTimestampFormat
 	$logPath = "$AmumssDir\$LogRelativePath\$($LogFileName)_$($logTs).log"
 	
+	$ErrorActionPreference = "Stop"
+	
 	function log {
 		param (
 			[Parameter(Position=0)]
@@ -345,65 +347,69 @@ function Get-AmumssValueConflicts {
 	}
 	
 	function Get-LuaData($data) {
-		# For each Lua file, get its NMS_MOD_DEFINITION_CONTAINER table and parse its data into forms that facilitate later comparison
+		# For each Lua file, get its NMS_MOD_DEFINITION_CONTAINER table, validate its syntax, and parse its data into forms that facilitate later comparison
 		log "Getting Lua file data..."
 		
-		$anyDataErrors = $false
+		$anyOverallErrors = $false
 		$data.Luas = $data.Luas | ForEach-Object {
 			$lua = $_
 			log "Processing `"$($lua.FilePath)`"..." -L 1
+			$anyGatheringErrors = $false
 			
 			# Get the Lua's effective NMS_MOD_DEFINITION_CONTAINER table data by executing the Lua script and passing that variable back
 			$lua = Get-LuaTable $lua
-			# Validate the table to make sure there aren't any anomalies
-			$lua = Validate-LuaTable $lua
 			
-			$anyLuaErrors = $true
-			if(
-				(-not $ValidateOnly) -and
-				(-not $lua.ValidationErrors)
-			) {
-				# Parse the table data into convenient forms
+			if(-not $lua.ExecutionErrors) {
+				# Validate the table to make sure there aren't any anomalies
+				$lua = Validate-LuaTable $lua
 				
-				# Parse value changes. These are the most common change that Luas perform.
-				# file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#VALUE_CHANGE_TABLE
-				$lua = Get-ValueChanges $lua
-				
-				if(-not $lua.ValueChangesErrors) {
-					# Parse other possible functions: file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#NMS_MOD_DEFINITION_CONTAINER
-					
-					# file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#ADD
-					#$lua = Get-Additions $lua
-					
-					# file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#REMOVE
-					#$lua = Get-Removals $lua
-					
-					$anyLuaErrors = $false
+				if(
+					(-not $ValidateOnly) -and
+					(-not $lua.ValidationErrors)
+				) {
+					# Parse the table data into convenient forms for comparison
+					$lua = Parse-LuaTable $lua
 				}
 				else {
-					$anyDataErrors = $true
+					if($ValidateOnly) {
+						if($lua.ValidationErrors) {
+							log "-ValidateOnly was specified. Skipping parsing." -L 2
+						}
+						else {
+							log "-ValidateOnly was specified and there were validation errors. Skipping parsing." -L 2
+						}
+					}
+					elseif($lua.ValidationErrors) {
+						log "There were validation errors. Skipping parsing." -L 2
+					}
 				}
 			}
-			else {
-				$anyDataErrors = $true
-			}
 			
-			if($anyLuaErrors) {
-				log "Failed to get all data from this Lua file!" -L 2 -E
+			if(
+				($lua.ExecutionErrors) -or
+				($lua.ValidationErrors) -or
+				($lua.ParsingErrors)
+			) {
+				$anyGatheringErrors = $true
+				$anyOverallErrors = $true
+				log "This Lua file has one or more errors in execution, validation, and/or parsing!" -L 2 -E
 			}
+			$lua | Add-Member -NotePropertyName "GatheringErrors" -NotePropertyValue $anyGatheringErrors
 			
 			$lua
 		}
 		
-		if($anyDataErrors) {
-			log "There were one or more errors in validation and data gathering! Comparison will be skipped." -L 1 -E
+		if($anyOverallErrors) {
+			log "One or more Lua files had one or more errors in execution, validation, and/or parsing!" -L 1 -E
 		}
+		$data | Add-Member -NotePropertyName "Errors" -NotePropertyValue $anyOverallErrors
 		
 		$data
 	}
 	
 	function Get-LuaTable($lua) {
 		log "Getting NMS_MOD_DEFINITION_CONTAINER table data..." -L 2
+		$anyExecutionErrors = $true
 		
 		$luaExeRelativePath = "MODBUILDER\Extras\lua_x64\bin\lua.exe"
 		$luaExe = "$($AmumssDir)\$($luaExeRelativePath)"
@@ -434,6 +440,7 @@ function Get-AmumssValueConflicts {
 				log "Converting JSON into PowerShell object..." -L 3
 				try {
 					$table = $tableJson | ConvertFrom-Json
+					$anyExecutionErrors = $false
 				}
 				catch {
 					log "Failed to convert JSON!" -L 4
@@ -446,7 +453,14 @@ function Get-AmumssValueConflicts {
 		}
 		
 		$lua | Add-Member -NotePropertyName "TableJson" -NotePropertyValue $tableJson
-		$lua | Add-Member -NotePropertyName "Table" -NotePropertyValue $table -PassThru
+		$lua | Add-Member -NotePropertyName "Table" -NotePropertyValue $table
+		
+		if($anyExecutionErrors) {
+			log "This Lua file failed execution!" -L 2 -E
+		}
+		$lua | Add-Member -NotePropertyName "ExecutionErrors" -NotePropertyValue $anyExecutionErrors
+		
+		$lua
 	}
 	
 	function Validate-LuaTable($lua) {
@@ -585,7 +599,9 @@ function Get-AmumssValueConflicts {
 		$validations += Get-Validation "EXML_CHANGE_TABLE" "all have >=1 member" $valid
 		
 		# Summarize validation results
-		$anyErrors = $false
+		$lua | Add-Member -NotePropertyName "Validations" -NotePropertyValue $validations
+		
+		$anyValidationErrors = $false
 		log "Results:" -L 3
 		$validations | ForEach-Object {
 			log "$($_.PropertyName) $($_.Validation): " -L 4 -NoNL
@@ -593,16 +609,44 @@ function Get-AmumssValueConflicts {
 			$color = "green"
 			if(-not $_.Result) {
 				$color = "red"
-				$anyErrors = $true
+				$anyValidationErrors = $true
 			}
 			log "$($_.Result)" -FC $color -NoTS
 		}
-		$lua = $lua | Add-Member -NotePropertyName "Validations" -NotePropertyValue $validations
 		
-		if($anyErrors) {
-			log "This Lua files failed validation!" -L 3 -E
+		if($anyValidationErrors) {
+			log "This Lua file failed validation!" -L 3 -E
 		}
-		$lua | Add-Member -NotePropertyName "ValidationErrors" -NotePropertyValue $anyErrors
+		$lua | Add-Member -NotePropertyName "ValidationErrors" -NotePropertyValue $anyValidationErrors
+		
+		$lua
+	}
+	
+	function Parse-LuaTable($lua) {
+		log "Parsing table data..." -L 2
+		$table = $lua.Table
+		$anyParsingErrors = $true
+		
+		# Parse value changes. These are the most common change that Luas perform.
+		# file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#VALUE_CHANGE_TABLE
+		$lua = Get-ValueChanges $lua
+		
+		if(-not $lua.ValueChangesErrors) {
+			# Parse other possible functions: file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#NMS_MOD_DEFINITION_CONTAINER
+			
+			# file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#ADD
+			#$lua = Get-Additions $lua
+			
+			# file:///S:/AMUMSS/install/README/README-AMUMSS_Script_Rules.html#REMOVE
+			#$lua = Get-Removals $lua
+			
+			$anyParsingErrors = $false
+		}
+		
+		if($anyParsingErrors) {
+			log "This Lua file could not be parsed!" -L 3 -E
+		}
+		$lua | Add-Member -NotePropertyName "ParsingErrors" -NotePropertyValue $anyParsingErrors
 		
 		$lua
 	}
@@ -655,6 +699,19 @@ function Get-AmumssValueConflicts {
 			(-not $data.Errors)
 		) {
 			$data = Compare-Luas $data
+		}
+		else {
+			if($ValidateOnly) {
+				if($data.Errors) {
+					log "-ValidateOnly was specified. Skipping comparison."
+				}
+				else {
+					log "-ValidateOnly was specified and there were errors processing one or more Lua files. Skipping comparison."
+				}
+			}
+			elseif($data.Errors) {
+				log "There were errors processing one or more Lua files. Skipping comparison."
+			}
 		}
 		
 		if($PassThru) {
