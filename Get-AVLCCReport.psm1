@@ -1,4 +1,4 @@
-function Get-AmumssValueConflicts {
+function Get-AVLCCReport {
 	param(
 		# The root directory of your AMUMSS install
 		[string]$AmumssDir = "S:\AMUMSS\install",
@@ -17,12 +17,12 @@ function Get-AmumssValueConflicts {
 		[string]$ConflictBlockRegex = '(?m)\[\[CONFLICT\]\] on "(.*)" \((.*)\)\r\n((.|\r\n)*?)IGNORE',
 		[string]$ConflictLuaRegex = '- "SCRIPT in (.*)"',
 		
-		[string]$LuaTableJsonScriptPath = "S:\Git\Get-AmumssValueConflicts\getLuaTableJson.lua",
+		[string]$LuaTableJsonScriptPath = "S:\Git\Get-AVLCCReport\getLuaTableJson.lua",
 		
 		[switch]$Quiet,
 		[switch]$Log,
 		[string]$LogRelativePath = "",
-		[string]$LogFileName = "Get-AmumssValueConflicts",
+		[string]$LogFileName = "Get-AVLCCReport",
 		[string]$LogFileTimestampFormat = "yyyy-MM-dd_HH-mm-ss",
 		[string]$LogLineTimestampFormat = "[HH:mm:ss] ",
 		[string]$Indent = "    "
