@@ -26,7 +26,7 @@ function Get-AVLCCReport {
 		[string]$LogFileTimestampFormat = "yyyy-MM-dd_HH-mm-ss",
 		[string]$LogLineTimestampFormat = "[HH:mm:ss] ",
 		[string]$Indent = "    ",
-		[int]$Verbosity = 1
+		#[int]$Verbosity = 0
 	)
 	$logTs = Get-Date -Format $LogFileTimestampFormat
 	$logPath = "$AmumssDir\$LogRelativePath\$($LogFileName)_$($logTs).log"
@@ -232,7 +232,7 @@ function Get-AVLCCReport {
 			$conflictMatch = $_
 			$mbin = $conflictMatch.Groups[1].Value
 			$pak = $conflictMatch.Groups[2].Value
-			log "$mbin ($pak)" -L 3 -V 1
+			log "$mbin ($pak)" -L 3
 			
 			$luaString = $conflictMatch.Groups[3].Value
 			$luaMatchInfo = $luaString | Select-String -AllMatches -Pattern $ConflictLuaRegex
@@ -249,13 +249,13 @@ function Get-AVLCCReport {
 				Throw "Lua files recognized, and match data was returned, but the match count was <1!"
 			}
 			
-			log "Found " -L 4 -NoNL -V 1
-			log $luasCount -NoTS -FC "yellow" -NoNL -V 1
-			log " contributing Luas." -NoTS -V 1
+			log "Found " -L 4 -NoNL
+			log $luasCount -NoTS -FC "yellow" -NoNL
+			log " contributing Luas." -NoTS
 			$luaFiles = $luaMatchInfo.Matches | ForEach-Object {
 				$luaMatch = $_
 				$luaFilePath = $luaMatch.Groups[1].Value
-				log $luaFilePath -L 5 -V 1
+				log $luaFilePath -L 5
 				$luaFilePathParts = $luaFilePath -split '\\'
 				$luaFileNameIndex = $luaFilePathParts.length - 1
 				$luaFileName = $luaFilePathParts[$luaFileNameIndex]
@@ -327,22 +327,22 @@ function Get-AVLCCReport {
 		log " unique Luas." -NoTS
 		
 		$conflictLuas | ForEach-Object {
-			log $_.FilePath -L 3 -V 1
+			log $_.FilePath -L 3
 			
 			$mbinsCount = @($_.Mbins).count
-			log "Found " -L 4 -NoNL -V 1
-			log $mbinsCount -NoTS -FC "yellow" -NoNL -V 1
-			log " MBINs being contributed to." -NoTS -V 1
+			log "Found " -L 4 -NoNL
+			log $mbinsCount -NoTS -FC "yellow" -NoNL
+			log " MBINs being contributed to." -NoTS
 			$_.Mbins | ForEach-Object {
-				log "$($_.Mbin) ($($_.Pak))" -L 5 -V 1
+				log "$($_.Mbin) ($($_.Pak))" -L 5
 			}
 			
 			$conflictingLuasCount = @($_.ConflictingLuas).count
-			log "Found " -L 4 -NoNL -V 1
-			log $conflictingLuasCount -NoTS -FC "yellow" -NoNL -V 1
-			log " conflicting Luas." -NoTS -V 1
+			log "Found " -L 4 -NoNL
+			log $conflictingLuasCount -NoTS -FC "yellow" -NoNL
+			log " conflicting Luas." -NoTS
 			$_.ConflictingLuas | ForEach-Object {
-				log $_ -L 5 -V 1
+				log $_ -L 5
 			}
 		}
 		
@@ -617,14 +617,14 @@ function Get-AVLCCReport {
 		$anyValidationErrors = $false
 		
 		$validations | ForEach-Object {
-			log "$($_.PropertyName) $($_.Validation): " -L 3 -NoNL -V 1
+			log "$($_.PropertyName) $($_.Validation): " -L 3 -NoNL
 			
 			$color = "green"
 			if(-not $_.Result) {
 				$color = "red"
 				$anyValidationErrors = $true
 			}
-			log "$($_.Result)" -FC $color -NoTS -V 1
+			log "$($_.Result)" -FC $color -NoTS
 		}
 		
 		if($anyValidationErrors) {
@@ -727,9 +727,9 @@ function Get-AVLCCReport {
 			$pair = $_.Luas
 			$a = $pair[0]
 			$b = $pair[1]
-			log "`"$a`" " -L 3 -NoNL -V 1
-			log "<>" -NoTS -FC "blue" -NoNL -V 1
-			log " `"$b`"" -NoTS -V 1
+			log "`"$a`" " -L 3 -NoNL
+			log "<>" -NoTS -FC "blue" -NoNL
+			log " `"$b`"" -NoTS
 		}
 				
 		# Every pairing will be duplicated
@@ -749,9 +749,9 @@ function Get-AVLCCReport {
 			$pair = $_.Luas
 			$a = $pair[0]
 			$b = $pair[1]
-			log "`"$a`" " -L 3 -NoNL -V 1
-			log "<>" -NoTS -FC "blue" -NoNL -V 1
-			log " `"$b`"" -NoTS -V 1
+			log "`"$a`" " -L 3 -NoNL
+			log "<>" -NoTS -FC "blue" -NoNL
+			log " `"$b`"" -NoTS
 		}
 		
 		$data | Add-Member -NotePropertyName "ConflictPairs" -NotePropertyValue $uniqueConflictPairs
