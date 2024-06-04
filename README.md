@@ -185,6 +185,7 @@ In actuality these numbers each define a curated string array for `-ExcludeLogCa
 - `3` = `@("Verbosest","Many","ManyVerbose")`
 - `4` = `@("Many","ManyVerbose")`
 - `5` = `@()`
+
 In reality, you probably only care about `0`, `1`, and `5`.  
 
 # Notes
