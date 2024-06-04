@@ -176,10 +176,13 @@ function Get-AVLCCReport {
 			}
 		}
 		
-		log "Unique Luas:" -L 3
+		$luasCount = @($conflictLuas).count
+		log "Unique Luas ($luasCount):" -L 3
 		$conflictLuas | ForEach-Object {
 			log $_.FilePath -L 4
-			log "Conflicting Luas:" -L 5
+			
+			$conflictingLuasCount = @($_.ConflictingLuas).count
+			log "Conflicting Luas ($conflictingLuasCount):" -L 5
 			$_.ConflictingLuas | ForEach-Object {
 				log $_ -L 6
 			}
@@ -216,7 +219,7 @@ function Get-AVLCCReport {
 			Throw "Conflicts found, and match data was returned, but the match count was <1!"
 		}
 		
-		log "Found $conflictLinesCount MBIN files with conflicts:" -L 3
+		log "MBIN files with conflicts ($conflictLinesCount):" -L 3
 		$conflictMbins = $conflictLinesMatchInfo.Matches | ForEach-Object {
 			$conflictMatch = $_
 			$mbin = $conflictMatch.Groups[1].Value
@@ -233,15 +236,16 @@ function Get-AVLCCReport {
 				Throw "Lua files recognized, but no match data was returned!"
 			}
 			
-			$luaCount = @($luaMatchInfo.Matches).count
-			if($luaCount -lt 1) {
+			$luasCount = @($luaMatchInfo.Matches).count
+			if($luasCount -lt 1) {
 				Throw "Lua files recognized, and match data was returned, but the match count was <1!"
 			}
 			
+			log "Contributing Luas ($luasCount):" -L 5
 			$luaFiles = $luaMatchInfo.Matches | ForEach-Object {
 				$luaMatch = $_
 				$luaFilePath = $luaMatch.Groups[1].Value
-				log $luaFilePath -L 5
+				log $luaFilePath -L 6
 				$luaFilePathParts = $luaFilePath -split '\\'
 				$luaFileNameIndex = $luaFilePathParts.length - 1
 				$luaFileName = $luaFilePathParts[$luaFileNameIndex]
@@ -307,14 +311,19 @@ function Get-AVLCCReport {
 			$lua | Add-Member -NotePropertyName "ConflictingLuas" -NotePropertyValue $conflictingOtherUniqueLuaPaths -PassThru
 		}
 		
-		log "Unique Luas:" -L 1
+		$luasCount = @($conflictLuas).count
+		log "Unique Luas ($luasCount):" -L 1
 		$conflictLuas | ForEach-Object {
 			log $_.FilePath -L 2
-			log "Contributing to MBINs:" -L 3
+			
+			$mbinsCount = @($_.Mbins).count
+			log "Contributing to MBINs ($mbinsCount):" -L 3
 			$_.Mbins | ForEach-Object {
 				log "$($_.Mbin) ($($_.Pak))" -L 4
 			}
-			log "Conflicting Luas:" -L 3
+			
+			$conflictingLuasCount = @($_.ConflictingLuas).count
+			log "Conflicting Luas ($conflictingLuasCount):" -L 3
 			$_.ConflictingLuas | ForEach-Object {
 				log $_ -L 4
 			}
@@ -365,6 +374,8 @@ function Get-AVLCCReport {
 				}
 			}
 		}
+		$conflictPairsCount = @($conflictPairs).count
+		log "Found $conflictPairsCount total non-unique pairings." -L 2
 		
 		<#
 		log "Conflict pairs:" -L 2
@@ -384,7 +395,8 @@ function Get-AVLCCReport {
 			$pair
 		} | Sort { $_.Luas[0],$_.Luas[1] } -Unique
 		
-		log "Unique conflict pairs:" -L 2
+		$uniqueConflictPairsCount = @($uniqueConflictPairs).count
+		log "Unique conflict pairs ($uniqueConflictPairsCount):" -L 2
 		$uniqueConflictPairs | ForEach-Object {
 			$pair = $_.Luas
 			$a = $pair[0]
@@ -402,9 +414,14 @@ function Get-AVLCCReport {
 		log "Getting Lua file data..."
 		
 		$anyOverallErrors = $false
+		$processingCount = 0
+		$luasCount = @($data.Luas).count
 		$data.Luas = $data.Luas | ForEach-Object {
 			$lua = $_
-			log "Processing `"$($lua.FilePath)`"..." -L 1
+			$processingCount += 1
+			log "Processing Lua " -L 1 -NoNL
+			log "$($processingCount)/$($luasCount)" -NoTS -FC "yellow" -NoNL
+			log ": `"$($lua.FilePath)`"..." -NoTS
 			$anyGatheringErrors = $false
 			
 			# Get the Lua's effective NMS_MOD_DEFINITION_CONTAINER table data by executing the Lua script and passing that variable back
@@ -713,10 +730,15 @@ function Get-AVLCCReport {
 	function Compare-Luas($data) {
 		log "Comparing Lua files..."
 		
+		$comparingCount = 0
+		$conflictPairsCount = @($data.ConflictPairs).count
 		$data.ConflictPairs | ForEach-Object {
+			$comparingCount += 1
 			$a = $_.Luas[0]
-			$b = $_.Luas[1]
-			log "$a <> $b" -L 1
+			$b = $_.Luas[1]			
+			log "Comparing conflict pair " -L 1 -NoNL
+			log "$($comparingCount)/$($conflictPairsCount)" -NoTS -FC "yellow" -NoNL
+			log ": `"$a`" <> `"$b`"" -NoTS
 			
 			# Compare directly conflicting actions 
 			
