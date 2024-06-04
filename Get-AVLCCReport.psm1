@@ -46,13 +46,13 @@ function Get-AVLCCReport {
 	)
 	$VERBOSITIES = @(
 		[PSCustomObject]@{ "Id" = 1; "Excludes" = @("Verbose","Verboser","Verbosest","Many","ManyVerbose") },
-		[PSCustomObject]@{ "Id" = 1; "Excludes" = @("Verboser","Verbosest","Many","ManyVerbose") },
-		[PSCustomObject]@{ "Id" = 2; "Excludes" = @("Verbosest","Many","ManyVerbose") },
-		[PSCustomObject]@{ "Id" = 3; "Excludes" = @("Many","ManyVerbose") },
-		[PSCustomObject]@{ "Id" = 4; "Excludes" = @() }
+		[PSCustomObject]@{ "Id" = 2; "Excludes" = @("Verboser","Verbosest","Many","ManyVerbose") },
+		[PSCustomObject]@{ "Id" = 3; "Excludes" = @("Verbosest","Many","ManyVerbose") },
+		[PSCustomObject]@{ "Id" = 4; "Excludes" = @("Many","ManyVerbose") },
+		[PSCustomObject]@{ "Id" = 5; "Excludes" = @() }
 	)
 	if(-not $ExcludeLogCategories) {
-		if($Verbosity -lt 4) {
+		if($Verbosity -lt 5) {
 			$ExcludeLogCategories = $VERBOSITIES | Where { $_.Id -eq $Verbosity } | Select -ExpandProperty "Excludes"
 		}
 	}

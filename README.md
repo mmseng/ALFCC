@@ -161,13 +161,31 @@ Optional string array.
 Specifies an array of strings representing categories of log messages which should be excluded from the console/log output.  
 Don't worry too much about this; it's recommended to use `-Verbosity` instead.  
 This parameter is just the underlying mechanism, but can be used for more flexible log filtering.  
+The potential categories to filter are:  
+- `All`: Not currently implemented.
+- `Verbose`: Messages that are mildly verbose.
+- `Verboser`: Messages that are more verbose.
+- `Verbosest`: Messages that are very verbose. Currently unused.
+- `Many`: Messages that will be repeated once for every item in a potentially long list.
+- `ManyVerbose`: Verbose messages related to parent messages that will be repeated once for every item in a potentially long list.
+- `ManyMany`: Currently unused.
+- `Error`: Currently unused.
+- `Success`: Currently unused.
 
 ### Verbosity \<int\>
-Optional integer from `0` to `4`.  
+Optional integer from `0` to `5`.  
 The level of verbosity of the console/log output.  
-`4` means full verbosity.  
+`5` means full verbosity.  
 `0` means no output at all (to either console or the log).  
 Default is `1`, which is minimal.  
+In actuality these numbers each define a curated string array for `-ExcludeLogCategories`:
+- `0` (or less) = Hard coded to output nothing. Equivalent to `-Quiet` and omitting `-Log`.
+- `1` = `@("Verbose","Verboser","Verbosest","Many","ManyVerbose")`
+- `2` = `@("Verboser","Verbosest","Many","ManyVerbose")`
+- `3` = `@("Verbosest","Many","ManyVerbose")`
+- `4` = `@("Many","ManyVerbose")`
+- `5` = `@()`
+In reality, you probably only care about `0`, `1`, and `5`.  
 
 # Notes
 - By mmseng. See my other projects here: https://github.com/mmseng/code-compendium-personal.
