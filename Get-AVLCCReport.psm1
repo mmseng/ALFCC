@@ -286,7 +286,7 @@ function Get-AVLCCReport {
 		# We only really care about the Lua files and which other Lua files they conflict with.
 		# So instead, munge the data so that it's a list of Lua files, which each have a list of which other Lua files they conflict with.
 		
-		log "Converting list of MBINs which each of a list of contributing Luas into a list of Luas which each contribute to a list of MBINs..." -L 1
+		log "Converting list of MBINs which each have of a list of contributing Luas into a list of Luas which each contribute to a list of MBINs..." -L 1
 		
 		# Get unique Lua files
 		$conflictLuas = $conflictMbins | ForEach-Object {
