@@ -161,6 +161,7 @@ Optional string array.
 Specifies an array of strings representing categories of log messages which should be excluded from the console/log output.  
 Don't worry too much about this; it's recommended to use `-Verbosity` instead.  
 This parameter is just the underlying mechanism, but can be used for more flexible log filtering.  
+This mechanism for managing verbosity of output is kind of an experiment.  
 The potential categories to filter are:  
 - `All`: Not currently implemented.
 - `Verbose`: Messages that are mildly verbose.
