@@ -401,7 +401,7 @@ function Get-AVLCCReport {
 			$pair = $_.Luas
 			$a = $pair[0]
 			$b = $pair[1]
-			log "`"$a`" " -L 3 -NoTS -NoNL
+			log "`"$a`" " -L 3 -NoNL
 			log "<>" -NoTS -FC "blue" -NoNL
 			log " `"$b`"" -NoTS
 		}
