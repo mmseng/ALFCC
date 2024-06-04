@@ -165,7 +165,7 @@ function Get-AVLCCReport {
 	}
 	
 	function Get-GivenLuaFiles {
-		log "Building Lua data from given Lua paths..." -L 2
+		log "Building Lua data from given Lua paths..." -L 1
 		
 		$conflictLuas = $LuaFilePaths | ForEach-Object {
 			$lua = $_
@@ -177,14 +177,14 @@ function Get-AVLCCReport {
 		}
 		
 		$luasCount = @($conflictLuas).count
-		log "Unique Luas ($luasCount):" -L 3
+		log "Unique Luas ($luasCount):" -L 2
 		$conflictLuas | ForEach-Object {
-			log $_.FilePath -L 4
+			log $_.FilePath -L 3
 			
 			$conflictingLuasCount = @($_.ConflictingLuas).count
-			log "Conflicting Luas ($conflictingLuasCount):" -L 5
+			log "Conflicting Luas ($conflictingLuasCount):" -L 4
 			$_.ConflictingLuas | ForEach-Object {
-				log $_ -L 6
+				log $_ -L 5
 			}
 		}
 		
@@ -193,7 +193,7 @@ function Get-AVLCCReport {
 	
 	function Get-MbinFilesWithConflicts {
 		$reportLuaFilePath = "$AmumssDir\$ReportLuaRelativeFilePath"
-		log "Getting MBIN files with conflicts from `"$reportLuaFilePath`"..." -L 2
+		log "Getting MBIN files with conflicts from `"$reportLuaFilePath`"..." -L 1
 		
 		$reportLuaFile = Get-Item -Path $reportLuaFilePath
 		if(-not $reportLuaFile) {
@@ -219,12 +219,12 @@ function Get-AVLCCReport {
 			Throw "Conflicts found, and match data was returned, but the match count was <1!"
 		}
 		
-		log "MBIN files with conflicts ($conflictLinesCount):" -L 3
+		log "MBIN files with conflicts ($conflictLinesCount):" -L 2
 		$conflictMbins = $conflictLinesMatchInfo.Matches | ForEach-Object {
 			$conflictMatch = $_
 			$mbin = $conflictMatch.Groups[1].Value
 			$pak = $conflictMatch.Groups[2].Value
-			log "$mbin ($pak)" -L 4
+			log "$mbin ($pak)" -L 3
 			
 			$luaString = $conflictMatch.Groups[3].Value
 			$luaMatchInfo = $luaString | Select-String -AllMatches -Pattern $ConflictLuaRegex
@@ -241,11 +241,11 @@ function Get-AVLCCReport {
 				Throw "Lua files recognized, and match data was returned, but the match count was <1!"
 			}
 			
-			log "Contributing Luas ($luasCount):" -L 5
+			log "Contributing Luas ($luasCount):" -L 4
 			$luaFiles = $luaMatchInfo.Matches | ForEach-Object {
 				$luaMatch = $_
 				$luaFilePath = $luaMatch.Groups[1].Value
-				log $luaFilePath -L 6
+				log $luaFilePath -L 5
 				$luaFilePathParts = $luaFilePath -split '\\'
 				$luaFileNameIndex = $luaFilePathParts.length - 1
 				$luaFileName = $luaFilePathParts[$luaFileNameIndex]
@@ -276,7 +276,7 @@ function Get-AVLCCReport {
 		# We only really care about the Lua files and which other Lua files they conflict with.
 		# So instead, munge the data so that it's a list of Lua files, which each have a list of which other Lua files they conflict with.
 		
-		log "Munging data..."
+		log "Converting list of MBINs which each of a list of contributing Luas into a list of Luas which each contribute to a list of MBINs..." -L 1
 		
 		# Get unique Lua files
 		$conflictLuas = $conflictMbins | ForEach-Object {
@@ -312,20 +312,20 @@ function Get-AVLCCReport {
 		}
 		
 		$luasCount = @($conflictLuas).count
-		log "Unique Luas ($luasCount):" -L 1
+		log "Unique Luas ($luasCount):" -L 2
 		$conflictLuas | ForEach-Object {
-			log $_.FilePath -L 2
+			log $_.FilePath -L 3
 			
 			$mbinsCount = @($_.Mbins).count
-			log "Contributing to MBINs ($mbinsCount):" -L 3
+			log "Contributing to MBINs ($mbinsCount):" -L 4
 			$_.Mbins | ForEach-Object {
-				log "$($_.Mbin) ($($_.Pak))" -L 4
+				log "$($_.Mbin) ($($_.Pak))" -L 5
 			}
 			
 			$conflictingLuasCount = @($_.ConflictingLuas).count
-			log "Conflicting Luas ($conflictingLuasCount):" -L 3
+			log "Conflicting Luas ($conflictingLuasCount):" -L 4
 			$_.ConflictingLuas | ForEach-Object {
-				log $_ -L 4
+				log $_ -L 5
 			}
 		}
 		
@@ -494,8 +494,9 @@ function Get-AVLCCReport {
 			log $_.Exception.Message -L 5
 		}
 		
-		if($LASTEXITCODE -ne 0) {
-			log "Script executed, but lua.exe returned a non-zero exit code!" -L 4
+		$lastExitCodeBackup = $LASTEXITCODE
+		if($lastExitCodeBackup -ne 0) {
+			log "Script executed, but lua.exe returned a non-zero exit code (`"$lastExitCodeBackup`")!" -L 4
 			log $luaExeResult -L 5
 		}
 		else {
@@ -784,10 +785,10 @@ function Get-AVLCCReport {
 		$data = Get-LuaFiles $data
 		
 		if(-not $data.Errors) {
-			$data = Get-ConflictPairs $data
+			$data = Get-LuaData $data
 			
 			if(-not $data.Errors) {
-				$data = Get-LuaData $data
+				$data = Get-ConflictPairs $data
 				
 				if(
 					(-not $ValidateOnly) -and
