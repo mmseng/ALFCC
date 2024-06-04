@@ -156,5 +156,12 @@ The string used as indentation between `-LogLineTimestampFormat` and the actual 
 `-Indent` is repeated multiple times on any given line depending on how much that particular log message should be indented.  
 Default is `⎵⎵⎵⎵` (i.e. 4 spaces).  
 
+### Verbosity \<int\>
+Optional integer.  
+The level of verbosity of the console/log output.  
+Default is `0` and is the least verbose.  
+Increment by 1 to increase in verbosity.  
+Currently only `0` and `1` are implemented.  
+
 # Notes
 - By mmseng. See my other projects here: https://github.com/mmseng/code-compendium-personal.

@@ -25,7 +25,8 @@ function Get-AVLCCReport {
 		[string]$LogFileName = "Get-AVLCCReport",
 		[string]$LogFileTimestampFormat = "yyyy-MM-dd_HH-mm-ss",
 		[string]$LogLineTimestampFormat = "[HH:mm:ss] ",
-		[string]$Indent = "    "
+		[string]$Indent = "    ",
+		[int]$Verbosity = 0
 	)
 	$logTs = Get-Date -Format $LogFileTimestampFormat
 	$logPath = "$AmumssDir\$LogRelativePath\$($LogFileName)_$($logTs).log"
@@ -40,6 +41,7 @@ function Get-AVLCCReport {
 			[string]$LogPath = $logPath,
 
 			[int]$L = 0, # level of indentation
+			[int]$V = 0, # level of verbosity
 
 			[ValidateScript({[System.Enum]::GetValues([System.ConsoleColor]) -contains $_})]
 			[string]$FC = (get-host).ui.rawui.ForegroundColor, # foreground color
@@ -52,6 +54,9 @@ function Get-AVLCCReport {
 			[switch]$NoConsole, # skip outputting to console
 			[switch]$NoLog # skip logging to file
 		)
+		
+		if($V -gt $Verbosity) { return }
+		
 		if($E) { $FC = "Red" }
 		
 		$ofParams = @{
@@ -669,24 +674,28 @@ function Get-AVLCCReport {
 		}
 		$validations += Get-Validation "EXML_CHANGE_TABLE" "all have >=1 member" $valid
 		
-		# Summarize validation results
+		# Record validation results
 		$lua | Add-Member -NotePropertyName "Validations" -NotePropertyValue $validations
 		
+		# Output summary of validation results
 		$anyValidationErrors = $false
-		log "Results:" -L 3
+		
 		$validations | ForEach-Object {
-			log "$($_.PropertyName) $($_.Validation): " -L 4 -NoNL
+			log "$($_.PropertyName) $($_.Validation): " -L 3 -NoNL -V 1
 			
 			$color = "green"
 			if(-not $_.Result) {
 				$color = "red"
 				$anyValidationErrors = $true
 			}
-			log "$($_.Result)" -FC $color -NoTS
+			log "$($_.Result)" -FC $color -NoTS -V 1
 		}
 		
 		if($anyValidationErrors) {
 			log "This Lua file failed validation!" -L 3 -E
+		}
+		else {
+			log "All good." -L 3 -FC "green"
 		}
 		$lua | Add-Member -NotePropertyName "ValidationErrors" -NotePropertyValue $anyValidationErrors
 		
