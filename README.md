@@ -159,7 +159,7 @@ Default is `⎵⎵⎵⎵` (i.e. 4 spaces).
 ### Verbosity \<int\>
 Optional integer.  
 The level of verbosity of the console/log output.  
-Default is `0` and is the least verbose.  
+Default is `1` and is the least verbose.  
 Increment by 1 to increase in verbosity.  
 Currently only `0` and `1` are implemented.  
 

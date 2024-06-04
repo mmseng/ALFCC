@@ -26,7 +26,7 @@ function Get-AVLCCReport {
 		[string]$LogFileTimestampFormat = "yyyy-MM-dd_HH-mm-ss",
 		[string]$LogLineTimestampFormat = "[HH:mm:ss] ",
 		[string]$Indent = "    ",
-		[int]$Verbosity = 0
+		[int]$Verbosity = 1
 	)
 	$logTs = Get-Date -Format $LogFileTimestampFormat
 	$logPath = "$AmumssDir\$LogRelativePath\$($LogFileName)_$($logTs).log"
@@ -224,12 +224,15 @@ function Get-AVLCCReport {
 			Throw "Conflicts found, and match data was returned, but the match count was <1!"
 		}
 		
-		log "MBIN files with conflicts ($conflictLinesCount):" -L 2
+		log "Found " -L 2 -NoNL
+		log $conflictLinesCount -NoTS -FC "yellow" -NoNL
+		log " MBIN files with conflicts." -NoTS
+		
 		$conflictMbins = $conflictLinesMatchInfo.Matches | ForEach-Object {
 			$conflictMatch = $_
 			$mbin = $conflictMatch.Groups[1].Value
 			$pak = $conflictMatch.Groups[2].Value
-			log "$mbin ($pak)" -L 3
+			log "$mbin ($pak)" -L 3 -V 1
 			
 			$luaString = $conflictMatch.Groups[3].Value
 			$luaMatchInfo = $luaString | Select-String -AllMatches -Pattern $ConflictLuaRegex
@@ -246,11 +249,13 @@ function Get-AVLCCReport {
 				Throw "Lua files recognized, and match data was returned, but the match count was <1!"
 			}
 			
-			log "Contributing Luas ($luasCount):" -L 4
+			log "Found " -L 4 -NoNL -V 1
+			log $luasCount -NoTS -FC "yellow" -NoNL -V 1
+			log " contributing Luas." -NoTS -V 1
 			$luaFiles = $luaMatchInfo.Matches | ForEach-Object {
 				$luaMatch = $_
 				$luaFilePath = $luaMatch.Groups[1].Value
-				log $luaFilePath -L 5
+				log $luaFilePath -L 5 -V 1
 				$luaFilePathParts = $luaFilePath -split '\\'
 				$luaFileNameIndex = $luaFilePathParts.length - 1
 				$luaFileName = $luaFilePathParts[$luaFileNameIndex]
@@ -317,103 +322,31 @@ function Get-AVLCCReport {
 		}
 		
 		$luasCount = @($conflictLuas).count
-		log "Unique Luas ($luasCount):" -L 2
+		log "Found " -L 2 -NoNL
+		log $luasCount -NoTS -FC "yellow" -NoNL
+		log " unique Luas." -NoTS
+		
 		$conflictLuas | ForEach-Object {
-			log $_.FilePath -L 3
+			log $_.FilePath -L 3 -V 1
 			
 			$mbinsCount = @($_.Mbins).count
-			log "Contributing to MBINs ($mbinsCount):" -L 4
+			log "Found " -L 4 -NoNL -V 1
+			log $mbinsCount -NoTS -FC "yellow" -NoNL -V 1
+			log " MBINs being contributed to." -NoTS -V 1
 			$_.Mbins | ForEach-Object {
-				log "$($_.Mbin) ($($_.Pak))" -L 5
+				log "$($_.Mbin) ($($_.Pak))" -L 5 -V 1
 			}
 			
 			$conflictingLuasCount = @($_.ConflictingLuas).count
-			log "Conflicting Luas ($conflictingLuasCount):" -L 4
+			log "Found " -L 4 -NoNL -V 1
+			log $conflictingLuasCount -NoTS -FC "yellow" -NoNL -V 1
+			log " conflicting Luas." -NoTS -V 1
 			$_.ConflictingLuas | ForEach-Object {
-				log $_ -L 5
+				log $_ -L 5 -V 1
 			}
 		}
 		
 		$conflictLuas
-	}
-	
-	function Test-ConflictPairIsUnique($targetPair, $pairs) {
-		#log "Testing if `"$($targetPair.Luas)`" is unique..." -L 2
-		$unique = $true
-		$pairs | ForEach-Object {
-			$thisPair = $_.Luas
-			$commonMembers = 0
-			$targetPair.Luas | ForEach-Object {
-				#log "Testing if `"$_`" is in `"$thisPair`"..." -L 3
-				if($_ -in $thisPair) {
-					#log "It is." -L 4
-					$commonMembers += 1
-				}
-				else {
-					#log "It's not." -L 4
-				}
-			}
-			if($commonMembers -gt 1) {
-				#log "Not unique." -L 5
-				$unique = $false
-			}
-		}
-		
-		if($unique) {
-			#log "Unique." -L 5
-		}
-		
-		$unique
-	}
-	
-	function Get-ConflictPairs($data) {
-		# Get full list of individual, 1-on-1 conflict pairings
-		log "Getting conflict pairings..."
-		
-		log "Getting all pairings..." -L 1
-		$conflictPairs = $data.Luas | ForEach-Object {
-			$lua = $_
-			$_.ConflictingLuas | ForEach-Object {
-				[PSCustomObject]@{
-					"Luas" = @($lua.FilePath, $_)
-				}
-			}
-		}
-		$conflictPairsCount = @($conflictPairs).count
-		log "Found $conflictPairsCount total non-unique pairings." -L 2
-		
-		<#
-		log "Conflict pairs:" -L 2
-		$conflictPairs | ForEach-Object {
-			$pair = $_.Luas
-			$a = $pair[0]
-			$b = $pair[1]
-			log "`"$a`" <> `"$b`"" -L 3
-		}
-		#>
-		
-		# Every pairing will be duplicated
-		log "Getting unique pairings..." -L 1
-		$uniqueConflictPairs = $conflictPairs | ForEach-Object {
-			$pair = $_
-			$pair.Luas = $pair.Luas | Sort
-			$pair
-		} | Sort { $_.Luas[0],$_.Luas[1] } -Unique
-		
-		$uniqueConflictPairsCount = @($uniqueConflictPairs).count
-		log "Unique conflict pairs ($uniqueConflictPairsCount):" -L 2
-		$uniqueConflictPairs | ForEach-Object {
-			$pair = $_.Luas
-			$a = $pair[0]
-			$b = $pair[1]
-			log "`"$a`" " -L 3 -NoNL
-			log "<>" -NoTS -FC "blue" -NoNL
-			log " `"$b`"" -NoTS
-		}
-		
-		$data | Add-Member -NotePropertyName "ConflictPairs" -NotePropertyValue $uniqueConflictPairs
-		
-		$data
 	}
 	
 	function Get-LuaData($data) {
@@ -495,17 +428,17 @@ function Get-AVLCCReport {
 			$luaExeResult = & $luaExe $luaScript $lua.FilePath *>&1
 		}
 		catch {
-			log "Failed to execute script!" -L 4
-			log $_.Exception.Message -L 5
+			log "Failed to execute script!" -L 4 -E
+			log $_.Exception.Message -L 5 -E
 		}
 		
 		$lastExitCodeBackup = $LASTEXITCODE
 		if($lastExitCodeBackup -ne 0) {
-			log "Script executed, but lua.exe returned a non-zero exit code (`"$lastExitCodeBackup`")!" -L 4
-			log $luaExeResult -L 5
+			log "Script executed, but lua.exe returned a non-zero exit code (`"$lastExitCodeBackup`")!" -L 4 -E
+			log $luaExeResult -L 5 -E
 		}
 		else {
-			log "Script succeeded." -L 4
+			log "Script executed." -L 4 -FC "green"
 			if($luaExeResult) {
 				log "Result returned; interpreting as JSON." -L 3
 				$tableJson = $luaExeResult
@@ -519,12 +452,12 @@ function Get-AVLCCReport {
 					$anyExecutionErrors = $false
 				}
 				catch {
-					log "Failed to convert JSON!" -L 4
-					log $_.Exception.Message -L 5
+					log "Failed to convert JSON!" -L 4 -E
+					log $_.Exception.Message -L 5 -E
 				}
 			}
 			else {
-				log "No result was returned!" -L 3
+				log "No result was returned!" -L 3 -E
 			}
 		}
 		
@@ -532,7 +465,10 @@ function Get-AVLCCReport {
 		$lua | Add-Member -NotePropertyName "Table" -NotePropertyValue $table
 		
 		if($anyExecutionErrors) {
-			log "This Lua file failed execution!" -L 2 -E
+			log "Failed to get table data!" -L 3 -E
+		}
+		else {
+			log "Succeeded getting table data." -L 3 -FC "green"
 		}
 		$lua | Add-Member -NotePropertyName "ExecutionErrors" -NotePropertyValue $anyExecutionErrors
 		
@@ -737,6 +673,90 @@ function Get-AVLCCReport {
 		log "NOT YET IMPLEMENTED!" -L 4 -E
 		
 		$lua
+	}
+	
+	function Test-ConflictPairIsUnique($targetPair, $pairs) {
+		#log "Testing if `"$($targetPair.Luas)`" is unique..." -L 2
+		$unique = $true
+		$pairs | ForEach-Object {
+			$thisPair = $_.Luas
+			$commonMembers = 0
+			$targetPair.Luas | ForEach-Object {
+				#log "Testing if `"$_`" is in `"$thisPair`"..." -L 3
+				if($_ -in $thisPair) {
+					#log "It is." -L 4
+					$commonMembers += 1
+				}
+				else {
+					#log "It's not." -L 4
+				}
+			}
+			if($commonMembers -gt 1) {
+				#log "Not unique." -L 5
+				$unique = $false
+			}
+		}
+		
+		if($unique) {
+			#log "Unique." -L 5
+		}
+		
+		$unique
+	}
+	
+	function Get-ConflictPairs($data) {
+		# Get full list of individual, 1-on-1 conflict pairings
+		log "Getting conflict pairings..."
+		
+		log "Getting all pairings..." -L 1
+		$conflictPairs = $data.Luas | ForEach-Object {
+			$lua = $_
+			$_.ConflictingLuas | ForEach-Object {
+				[PSCustomObject]@{
+					"Luas" = @($lua.FilePath, $_)
+				}
+			}
+		}
+		
+		$conflictPairsCount = @($conflictPairs).count
+		log "Found " -L 2 -NoNL
+		log $conflictPairsCount -NoTS -FC "yellow" -NoNL
+		log " total non-unique pairings." -NoTS
+		
+		$conflictPairs | ForEach-Object {
+			$pair = $_.Luas
+			$a = $pair[0]
+			$b = $pair[1]
+			log "`"$a`" " -L 3 -NoNL -V 1
+			log "<>" -NoTS -FC "blue" -NoNL -V 1
+			log " `"$b`"" -NoTS -V 1
+		}
+				
+		# Every pairing will be duplicated
+		log "Getting unique pairings..." -L 1
+		$uniqueConflictPairs = $conflictPairs | ForEach-Object {
+			$pair = $_
+			$pair.Luas = $pair.Luas | Sort
+			$pair
+		} | Sort { $_.Luas[0],$_.Luas[1] } -Unique
+		
+		$uniqueConflictPairsCount = @($uniqueConflictPairs).count
+		log "Found " -L 2 -NoNL
+		log $uniqueConflictPairsCount -NoTS -FC "yellow" -NoNL
+		log " unique conflict pairs." -NoTS
+		
+		$uniqueConflictPairs | ForEach-Object {
+			$pair = $_.Luas
+			$a = $pair[0]
+			$b = $pair[1]
+			log "`"$a`" " -L 3 -NoNL -V 1
+			log "<>" -NoTS -FC "blue" -NoNL -V 1
+			log " `"$b`"" -NoTS -V 1
+		}
+		
+		$data | Add-Member -NotePropertyName "ConflictPairs" -NotePropertyValue $uniqueConflictPairs
+		
+		$data
 	}
 	
 	function Compare-Luas($data) {
