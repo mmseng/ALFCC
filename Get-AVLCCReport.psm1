@@ -19,14 +19,14 @@ function Get-AVLCCReport {
 		
 		[string]$LuaTableJsonScriptPath = "S:\Git\Get-AVLCCReport\getLuaTableJson.lua",
 		
-		#[int]$Verbosity = 0,
 		[switch]$Quiet,
 		[switch]$Log,
 		[string]$LogRelativePath = "",
 		[string]$LogFileName = "Get-AVLCCReport",
 		[string]$LogFileTimestampFormat = "yyyy-MM-dd_HH-mm-ss",
 		[string]$LogLineTimestampFormat = "[HH:mm:ss] ",
-		[string]$Indent = "    "
+		[string]$Indent = "    ",
+		[int]$Verbosity = 0
 		
 	)
 	$logTs = Get-Date -Format $LogFileTimestampFormat
