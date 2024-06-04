@@ -401,7 +401,9 @@ function Get-AVLCCReport {
 			$pair = $_.Luas
 			$a = $pair[0]
 			$b = $pair[1]
-			log "`"$a`" <> `"$b`"" -L 3
+			log "`"$a`" " -L 3 -NoTS -NoNL
+			log "<>" -NoTS -FC "blue" -NoNL
+			log " `"$b`"" -NoTS
 		}
 		
 		$data | Add-Member -NotePropertyName "ConflictPairs" -NotePropertyValue $uniqueConflictPairs
@@ -738,7 +740,9 @@ function Get-AVLCCReport {
 			$b = $_.Luas[1]			
 			log "Comparing conflict pair " -L 1 -NoNL
 			log "$($comparingCount)/$($conflictPairsCount)" -NoTS -FC "yellow" -NoNL
-			log ": `"$a`" <> `"$b`"" -NoTS
+			log ": `"$a`" " -NoTS -NoNL
+			log "<>" -NoTS -FC "blue" -NoNL
+			log " `"$b`"" -NoTS
 			
 			# Compare directly conflicting actions 
 			
