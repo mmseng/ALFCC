@@ -156,14 +156,18 @@ The string used as indentation between `-LogLineTimestampFormat` and the actual 
 `-Indent` is repeated multiple times on any given line depending on how much that particular log message should be indented.  
 Default is `⎵⎵⎵⎵` (i.e. 4 spaces).  
 
-<!--
+### ExcludeLogCategories \<string[]\>
+Optional string array.  
+Specifies an array of strings representing categories of log messages which should be excluded from the console/log output.  
+Don't worry too much about this; it's recommended to use `-Verbosity` instead.  
+This parameter is just the underlying mechanism, but can be used for more flexible log filtering.  
+
 ### Verbosity \<int\>
-Optional integer.  
+Optional integer from `0` to `4`.  
 The level of verbosity of the console/log output.  
-Default is `0` and is the least verbose.  
-Increment by 1 to increase in verbosity.  
-Currently only `0` and `1` are implemented.  
--->
+`4` means full verbosity.  
+`0` means no output at all (to either console or the log).  
+Default is `1`, which is minimal.  
 
 # Notes
 - By mmseng. See my other projects here: https://github.com/mmseng/code-compendium-personal.

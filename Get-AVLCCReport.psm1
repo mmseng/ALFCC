@@ -26,11 +26,36 @@ function Get-AVLCCReport {
 		[string]$LogFileTimestampFormat = "yyyy-MM-dd_HH-mm-ss",
 		[string]$LogLineTimestampFormat = "[HH:mm:ss] ",
 		[string]$Indent = "    ",
-		[int]$Verbosity = 0
+		[string[]]$ExcludeLogCategories,
+		[int]$Verbosity = 1
 		
 	)
 	$logTs = Get-Date -Format $LogFileTimestampFormat
 	$logPath = "$AmumssDir\$LogRelativePath\$($LogFileName)_$($logTs).log"
+	
+	$LOG_CATEGORIES = @(
+		[PSCustomObject]@{ "Id" = 0; "Name" = "All" },
+		[PSCustomObject]@{ "Id" = 1; "Name" = "Verbose" },
+		[PSCustomObject]@{ "Id" = 2; "Name" = "Verboser" },
+		[PSCustomObject]@{ "Id" = 3; "Name" = "Verbosest" },
+		[PSCustomObject]@{ "Id" = 4; "Name" = "Many" },
+		[PSCustomObject]@{ "Id" = 5; "Name" = "ManyVerbose" },
+		[PSCustomObject]@{ "Id" = 6; "Name" = "ManyMany" },
+		[PSCustomObject]@{ "Id" = 7; "Name" = "Error" },
+		[PSCustomObject]@{ "Id" = 8; "Name" = "Success" }
+	)
+	$VERBOSITIES = @(
+		[PSCustomObject]@{ "Id" = 1; "Excludes" = @("Verbose","Verboser","Verbosest","Many","ManyVerbose") },
+		[PSCustomObject]@{ "Id" = 1; "Excludes" = @("Verboser","Verbosest","Many","ManyVerbose") },
+		[PSCustomObject]@{ "Id" = 2; "Excludes" = @("Verbosest","Many","ManyVerbose") },
+		[PSCustomObject]@{ "Id" = 3; "Excludes" = @("Many","ManyVerbose") },
+		[PSCustomObject]@{ "Id" = 4; "Excludes" = @() }
+	)
+	if(-not $ExcludeLogCategories) {
+		if($Verbosity -lt 4) {
+			$ExcludeLogCategories = $VERBOSITIES | Where { $_.Id -eq $Verbosity } | Select -ExpandProperty "Excludes"
+		}
+	}
 	
 	$ErrorActionPreference = "Stop"
 	
@@ -42,7 +67,7 @@ function Get-AVLCCReport {
 			[string]$LogPath = $logPath,
 
 			[int]$L = 0, # level of indentation
-			[int]$V = 0, # level of verbosity
+			[int[]]$C, # message categories, for filtering
 
 			[ValidateScript({[System.Enum]::GetValues([System.ConsoleColor]) -contains $_})]
 			[string]$FC = (get-host).ui.rawui.ForegroundColor, # foreground color
@@ -56,7 +81,19 @@ function Get-AVLCCReport {
 			[switch]$NoLog # skip logging to file
 		)
 		
-		if($V -gt $Verbosity) { return }
+		if($Verbosity -le 0) { return }
+		
+		if($C -and $ExcludeLogCategories) {
+			$breakOut = $false
+			@($C) | ForEach-Object {
+				$categoryId = $_
+				$categoryName = $LOG_CATEGORIES | Where { $_.Id -eq $categoryId } | Select -ExpandProperty "Name"
+				if($categoryName -in $ExcludeLogCategories) {
+					$breakOut = $true
+				}
+			}
+			if($breakOut) { return }
+		}
 		
 		if($E) { $FC = "Red" }
 		
@@ -183,14 +220,19 @@ function Get-AVLCCReport {
 		}
 		
 		$luasCount = @($conflictLuas).count
-		log "Unique Luas ($luasCount):" -L 2
+		log "Found " -L 2 -NoNL
+		log $luasCount -NoTS -FC "yellow" -NoNL
+		log " unique Luas." -NoTS
+		
 		$conflictLuas | ForEach-Object {
-			log $_.FilePath -L 3
+			log $_.FilePath -L 3 -C 4
 			
 			$conflictingLuasCount = @($_.ConflictingLuas).count
-			log "Conflicting Luas ($conflictingLuasCount):" -L 4
+			log "Found " -L 4 -NoNL -C 5
+			log $conflictingLuasCount -NoTS -FC "yellow" -NoNL -C 5
+			log " conflicting Luas." -NoTS -C 5
 			$_.ConflictingLuas | ForEach-Object {
-				log $_ -L 5
+				log $_ -L 5 -C 5
 			}
 		}
 		
@@ -233,7 +275,7 @@ function Get-AVLCCReport {
 			$conflictMatch = $_
 			$mbin = $conflictMatch.Groups[1].Value
 			$pak = $conflictMatch.Groups[2].Value
-			log "$mbin ($pak)" -L 3
+			log "$mbin ($pak)" -L 3 -C 4
 			
 			$luaString = $conflictMatch.Groups[3].Value
 			$luaMatchInfo = $luaString | Select-String -AllMatches -Pattern $ConflictLuaRegex
@@ -250,13 +292,13 @@ function Get-AVLCCReport {
 				Throw "Lua files recognized, and match data was returned, but the match count was <1!"
 			}
 			
-			log "Found " -L 4 -NoNL
-			log $luasCount -NoTS -FC "yellow" -NoNL
-			log " contributing Luas." -NoTS
+			log "Found " -L 4 -NoNL -C 4
+			log $luasCount -NoTS -FC "yellow" -NoNL -C 4
+			log " contributing Luas." -NoTS -C 4
 			$luaFiles = $luaMatchInfo.Matches | ForEach-Object {
 				$luaMatch = $_
 				$luaFilePath = $luaMatch.Groups[1].Value
-				log $luaFilePath -L 5
+				log $luaFilePath -L 5 -C 5
 				$luaFilePathParts = $luaFilePath -split '\\'
 				$luaFileNameIndex = $luaFilePathParts.length - 1
 				$luaFileName = $luaFilePathParts[$luaFileNameIndex]
@@ -328,22 +370,22 @@ function Get-AVLCCReport {
 		log " unique Luas." -NoTS
 		
 		$conflictLuas | ForEach-Object {
-			log $_.FilePath -L 3
+			log $_.FilePath -L 3 -C 4
 			
 			$mbinsCount = @($_.Mbins).count
-			log "Found " -L 4 -NoNL
-			log $mbinsCount -NoTS -FC "yellow" -NoNL
-			log " MBINs being contributed to." -NoTS
+			log "Found " -L 4 -NoNL -C 4
+			log $mbinsCount -NoTS -FC "yellow" -NoNL -C 4
+			log " MBINs being contributed to." -NoTS -C 4
 			$_.Mbins | ForEach-Object {
-				log "$($_.Mbin) ($($_.Pak))" -L 5
+				log "$($_.Mbin) ($($_.Pak))" -L 5 -C 5
 			}
 			
 			$conflictingLuasCount = @($_.ConflictingLuas).count
-			log "Found " -L 4 -NoNL
-			log $conflictingLuasCount -NoTS -FC "yellow" -NoNL
-			log " conflicting Luas." -NoTS
+			log "Found " -L 4 -NoNL -C 4
+			log $conflictingLuasCount -NoTS -FC "yellow" -NoNL -C 4
+			log " conflicting Luas." -NoTS -C 4
 			$_.ConflictingLuas | ForEach-Object {
-				log $_ -L 5
+				log $_ -L 5 -C 5
 			}
 		}
 		
@@ -417,48 +459,48 @@ function Get-AVLCCReport {
 	}
 	
 	function Get-LuaTable($lua) {
-		log "Getting NMS_MOD_DEFINITION_CONTAINER table data..." -L 2
+		log "Getting NMS_MOD_DEFINITION_CONTAINER table data..." -L 2 -C 1
 		$anyExecutionErrors = $true
 		
 		$luaExeRelativePath = "MODBUILDER\Extras\lua_x64\bin\lua.exe"
 		$luaExe = "$($AmumssDir)\$($luaExeRelativePath)"
 		$luaScript = $LuaTableJsonScriptPath
 		
-		log "Executing lua file table-to-JSON script: `"$luaScript`"..." -L 3
+		log "Executing lua file table-to-JSON script: `"$luaScript`"..." -L 3 -C 2
 		try {
 			$luaExeResult = & $luaExe $luaScript $lua.FilePath *>&1
 		}
 		catch {
-			log "Failed to execute script!" -L 4 -E
-			log $_.Exception.Message -L 5 -E
+			log "Failed to execute script!" -L 4 -E -C 2
+			log $_.Exception.Message -L 5 -E -C 2
 		}
 		
 		$lastExitCodeBackup = $LASTEXITCODE
 		if($lastExitCodeBackup -ne 0) {
-			log "Script executed, but lua.exe returned a non-zero exit code (`"$lastExitCodeBackup`")!" -L 4 -E
-			log $luaExeResult -L 5 -E
+			log "Script executed, but lua.exe returned a non-zero exit code (`"$lastExitCodeBackup`")!" -L 4 -E -C 2
+			log $luaExeResult -L 5 -E -C 2
 		}
 		else {
-			log "Script executed." -L 4 -FC "green"
+			log "Script executed." -L 4 -FC "green" -C 2
 			if($luaExeResult) {
-				log "Result returned; interpreting as JSON." -L 3
+				log "Result returned; interpreting as JSON." -L 3 -C 2
 				$tableJson = $luaExeResult
 				
 				#log "Table data JSON string:" -L 3
 				#log $tableJson -L 4
 				
-				log "Converting JSON into PowerShell object..." -L 3
+				log "Converting JSON into PowerShell object..." -L 3 -C 2
 				try {
 					$table = $tableJson | ConvertFrom-Json
 					$anyExecutionErrors = $false
 				}
 				catch {
-					log "Failed to convert JSON!" -L 4 -E
+					log "Failed to convert JSON!" -L 4 -E -C 2
 					log $_.Exception.Message -L 5 -E
 				}
 			}
 			else {
-				log "No result was returned!" -L 3 -E
+				log "No result was returned!" -L 3 -E -C 2
 			}
 		}
 		
@@ -466,10 +508,10 @@ function Get-AVLCCReport {
 		$lua | Add-Member -NotePropertyName "Table" -NotePropertyValue $table
 		
 		if($anyExecutionErrors) {
-			log "Failed to get table data!" -L 3 -E
+			log "Failed to get table data!" -L 3 -E -C 2
 		}
 		else {
-			log "Succeeded getting table data." -L 3 -FC "green"
+			log "Succeeded getting table data." -L 3 -FC "green" -C 2
 		}
 		$lua | Add-Member -NotePropertyName "ExecutionErrors" -NotePropertyValue $anyExecutionErrors
 		
@@ -477,7 +519,7 @@ function Get-AVLCCReport {
 	}
 	
 	function Validate-LuaTable($lua) {
-		log "Validating table data..." -L 2
+		log "Validating table data..." -L 2 -C 1
 		$table = $lua.Table
 		
 		$validations = @()
@@ -618,21 +660,21 @@ function Get-AVLCCReport {
 		$anyValidationErrors = $false
 		
 		$validations | ForEach-Object {
-			log "$($_.PropertyName) $($_.Validation): " -L 3 -NoNL
+			log "$($_.PropertyName) $($_.Validation): " -L 3 -NoNL -C 2
 			
 			$color = "green"
 			if(-not $_.Result) {
 				$color = "red"
 				$anyValidationErrors = $true
 			}
-			log "$($_.Result)" -FC $color -NoTS
+			log "$($_.Result)" -FC $color -NoTS -C 2
 		}
 		
 		if($anyValidationErrors) {
-			log "This Lua file failed validation!" -L 3 -E
+			log "This Lua file failed validation!" -L 3 -E -C 1
 		}
 		else {
-			log "All good." -L 3 -FC "green"
+			log "All good." -L 3 -FC "green" -C 1
 		}
 		$lua | Add-Member -NotePropertyName "ValidationErrors" -NotePropertyValue $anyValidationErrors
 		
@@ -640,7 +682,7 @@ function Get-AVLCCReport {
 	}
 	
 	function Parse-LuaTable($lua) {
-		log "Parsing table data..." -L 2
+		log "Parsing table data..." -L 2 -C 1
 		$table = $lua.Table
 		$anyParsingErrors = $true
 		
@@ -661,7 +703,10 @@ function Get-AVLCCReport {
 		}
 		
 		if($anyParsingErrors) {
-			log "This Lua file could not be parsed!" -L 3 -E
+			log "This Lua file could not be parsed!" -L 3 -E -C 1
+		}
+		else {
+			log "Succeeded parsing table data." -L 3 -FC "green" -C 1
 		}
 		$lua | Add-Member -NotePropertyName "ParsingErrors" -NotePropertyValue $anyParsingErrors
 		
@@ -669,9 +714,9 @@ function Get-AVLCCReport {
 	}
 	
 	function Get-ValueChanges($lua) {
-		log "Identifying value changes..." -L 3
+		log "Identifying value changes..." -L 3 -C 2
 		
-		log "NOT YET IMPLEMENTED!" -L 4 -E
+		log "NOT YET IMPLEMENTED!" -L 4 -E -C 2
 		
 		$lua
 	}
@@ -728,9 +773,9 @@ function Get-AVLCCReport {
 			$pair = $_.Luas
 			$a = $pair[0]
 			$b = $pair[1]
-			log "`"$a`" " -L 3 -NoNL
-			log "<>" -NoTS -FC "blue" -NoNL
-			log " `"$b`"" -NoTS
+			log "`"$a`" " -L 3 -NoNL -C 4
+			log "<>" -NoTS -FC "blue" -NoNL -C 4
+			log " `"$b`"" -NoTS -C 4
 		}
 				
 		# Every pairing will be duplicated
@@ -750,9 +795,9 @@ function Get-AVLCCReport {
 			$pair = $_.Luas
 			$a = $pair[0]
 			$b = $pair[1]
-			log "`"$a`" " -L 3 -NoNL
-			log "<>" -NoTS -FC "blue" -NoNL
-			log " `"$b`"" -NoTS
+			log "`"$a`" " -L 3 -NoNL -C 4
+			log "<>" -NoTS -FC "blue" -NoNL -C 4
+			log " `"$b`"" -NoTS -C 4
 		}
 		
 		$data | Add-Member -NotePropertyName "ConflictPairs" -NotePropertyValue $uniqueConflictPairs
@@ -798,9 +843,9 @@ function Get-AVLCCReport {
 	}
 	
 	function Compare-ValueChanges($data) {
-		log "Comparing value changes..." -L 2
+		log "Comparing value changes..." -L 2 -C 1
 		
-		log "NOT YET IMPLEMENTED!" -L 3 -E
+		log "NOT YET IMPLEMENTED!" -L 3 -E -C 1
 		
 		$data
 	}
