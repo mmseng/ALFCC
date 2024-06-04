@@ -464,49 +464,63 @@ function Get-AVLCCReport {
 		
 		$luaExeRelativePath = "MODBUILDER\Extras\lua_x64\bin\lua.exe"
 		$luaExe = "$($AmumssDir)\$($luaExeRelativePath)"
-		$luaScript = $LuaTableJsonScriptPath
 		
-		log "Executing lua file table-to-JSON script: `"$luaScript`"..." -L 3 -C 2
-		try {
-			$luaExeResult = & $luaExe $luaScript $lua.FilePath *>&1
-		}
-		catch {
-			log "Failed to execute script!" -L 4 -E -C 2
-			log $_.Exception.Message -L 5 -E -C 2
-		}
-		
-		$lastExitCodeBackup = $LASTEXITCODE
-		if($lastExitCodeBackup -ne 0) {
-			log "Script executed, but lua.exe returned a non-zero exit code (`"$lastExitCodeBackup`")!" -L 4 -E -C 2
-			log $luaExeResult -L 5 -E -C 2
+		if(-not (Test-Path -PathType "Leaf" -Path $luaExe)) {
+			log "Lua EXE not found at `"$luaExe`"!" -L 3 -E -C 1
 		}
 		else {
-			log "Script executed." -L 4 -FC "green" -C 2
-			if($luaExeResult) {
-				log "Result returned; interpreting as JSON." -L 3 -C 2
-				$tableJson = $luaExeResult
-				
-				#log "Table data JSON string:" -L 3
-				#log $tableJson -L 4
-				
-				log "Converting JSON into PowerShell object..." -L 3 -C 2
-				try {
-					$table = $tableJson | ConvertFrom-Json
-					$anyExecutionErrors = $false
-				}
-				catch {
-					log "Failed to convert JSON!" -L 4 -E -C 2
-					log $_.Exception.Message -L 5 -E
-				}
+			if(-not (Test-Path -PathType "Leaf" -Path $LuaTableJsonScriptPath)) {
+				log "Script not found at `"$LuaTableJsonScriptPath`"!" -L 3 -E -C 1
 			}
 			else {
-				log "No result was returned!" -L 3 -E -C 2
+				if(-not (Test-Path -PathType "Leaf" -Path $lua.FilePath)) {
+					log "Lua file not found at `"$($lua.FilePath)`"!" -L 3 -E -C 1
+				}
+				else {
+					log "Executing lua file table-to-JSON script: `"$LuaTableJsonScriptPath`"..." -L 3 -C 2
+					try {
+						$luaExeResult = & $luaExe $LuaTableJsonScriptPath $lua.FilePath *>&1
+					}
+					catch {
+						log "Failed to execute script!" -L 4 -E -C 2
+						log $_.Exception.Message -L 5 -E -C 2
+					}
+					
+					$lastExitCodeBackup = $LASTEXITCODE
+					if($lastExitCodeBackup -ne 0) {
+						log "Script executed, but lua.exe returned a non-zero exit code (`"$lastExitCodeBackup`")!" -L 4 -E -C 2
+						log $luaExeResult -L 5 -E -C 2
+					}
+					else {
+						log "Script executed." -L 4 -FC "green" -C 2
+						if($luaExeResult) {
+							log "Result returned; interpreting as JSON." -L 3 -C 2
+							$tableJson = $luaExeResult
+							
+							#log "Table data JSON string:" -L 3
+							#log $tableJson -L 4
+							
+							log "Converting JSON into PowerShell object..." -L 3 -C 2
+							try {
+								$table = $tableJson | ConvertFrom-Json
+								$anyExecutionErrors = $false
+							}
+							catch {
+								log "Failed to convert JSON!" -L 4 -E -C 2
+								log $_.Exception.Message -L 5 -E
+							}
+						}
+						else {
+							log "No result was returned!" -L 3 -E -C 2
+						}
+					}
+					
+					$lua | Add-Member -NotePropertyName "TableJson" -NotePropertyValue $tableJson
+					$lua | Add-Member -NotePropertyName "Table" -NotePropertyValue $table
+				}
 			}
 		}
-		
-		$lua | Add-Member -NotePropertyName "TableJson" -NotePropertyValue $tableJson
-		$lua | Add-Member -NotePropertyName "Table" -NotePropertyValue $table
-		
+				
 		if($anyExecutionErrors) {
 			log "Failed to get table data!" -L 3 -E -C 2
 		}
